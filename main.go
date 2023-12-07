@@ -49,14 +49,13 @@ func main() {
 		log.Fatalf("Error downscaling deployments %v", err)
 	}
 
+	fmt.Print("Press 'Enter' to start scaling up again...")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+
 	downscaledDeployments, err := clientset.AppsV1().Deployments(*namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		log.Fatalf("Error getting deployments %v", err)
 	}
-	printDeployments(downscaledDeployments)
-
-	fmt.Print("Press 'Enter' to start scaling up again...")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
 
 	upscaleDeployments(downscaledDeployments, deploymentScales, clientset, namespace, ctx)
 }
