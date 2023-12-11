@@ -9,6 +9,10 @@ import (
 )
 
 var (
+	Version    = "dev"
+	Commit     = "none"
+	Date       = "unknown"
+	BuiltBy    = "dirty hands"
 	kubeconfig string
 	namespace  string
 	rootCmd    = &cobra.Command{
