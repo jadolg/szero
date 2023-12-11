@@ -22,10 +22,12 @@ var upCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		err = upscaleDeployments(ctx, clientset, deployments)
+		log.Infof("Found %d deployments", len(deployments.Items))
+		upscaled, err := upscaleDeployments(ctx, clientset, deployments)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Infof("Upscaled %d deployments", upscaled)
 	},
 }
 
