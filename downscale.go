@@ -23,10 +23,12 @@ var downCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		err = downscaleDeployments(ctx, clientset, deployments)
+		log.Infof("Found %d deployments", len(deployments.Items))
+		downscaled, err := downscaleDeployments(ctx, clientset, deployments)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Infof("Downscaled %d deployments", downscaled)
 	},
 }
 

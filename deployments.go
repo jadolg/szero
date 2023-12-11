@@ -29,49 +29,53 @@ func getClientset(kubeconfig string) (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) error {
+func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	var resultError error
+	upscaledDeployments := 0
 	for _, d := range deployments.Items {
 		replicas, downscaled := d.Annotations[ReplicasAnnotation]
-
-		intReplicas, err := strconv.Atoi(replicas)
-		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err))
-			continue
-		}
-
 		if downscaled {
-			log.Infof("Scaling up deployment %s", d.Name)
+			intReplicas, err := strconv.Atoi(replicas)
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err))
+				continue
+			}
+			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
 			*d.Spec.Replicas = int32(intReplicas)
 			delete(d.Annotations, ReplicasAnnotation)
-			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
+			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err))
+			} else {
+				upscaledDeployments++
 			}
 		} else {
-			log.Debugf("Deployment %s already scaled up", d.Name)
+			log.Infof("Deployment %s already scaled up", d.Name)
 		}
 	}
-	return resultError
+	return upscaledDeployments, resultError
 }
 
-func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) error {
+func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	var resultError error
+	downscaledDeployments := 0
 	for _, d := range deployments.Items {
 		_, downscaled := d.Annotations[ReplicasAnnotation]
 		if !downscaled {
-			log.Infof("Scaling down deployment %s", d.Name)
+			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
 			d.Annotations[ReplicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
 			*d.Spec.Replicas = 0
 			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err))
+			} else {
+				downscaledDeployments++
 			}
 		} else {
-			log.Debugf("Deployment %s already downscaled", d.Name)
+			log.Infof("Deployment %s already downscaled", d.Name)
 		}
 	}
-	return resultError
+	return downscaledDeployments, resultError
 }
 
 func getDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
