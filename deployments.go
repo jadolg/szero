@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
@@ -13,7 +14,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const ReplicasAnnotation = "szero/replicas"
+const replicasAnnotation = "szero/replicas"
+const restartedAtAnnotation = "kubernetes.io/restartedAt"
+const changeCauseAnnotation = "kubernetes.io/change-cause"
 
 func getClientset(kubeconfig string) (*kubernetes.Clientset, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -33,7 +36,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 	var resultError error
 	upscaledDeployments := 0
 	for _, d := range deployments.Items {
-		replicas, downscaled := d.Annotations[ReplicasAnnotation]
+		replicas, downscaled := d.Annotations[replicasAnnotation]
 		if downscaled {
 			intReplicas, err := strconv.Atoi(replicas)
 			if err != nil {
@@ -42,7 +45,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 			}
 			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
 			*d.Spec.Replicas = int32(intReplicas)
-			delete(d.Annotations, ReplicasAnnotation)
+			delete(d.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err))
@@ -60,10 +63,10 @@ func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 	var resultError error
 	downscaledDeployments := 0
 	for _, d := range deployments.Items {
-		_, downscaled := d.Annotations[ReplicasAnnotation]
+		_, downscaled := d.Annotations[replicasAnnotation]
 		if !downscaled {
 			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
-			d.Annotations[ReplicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
+			d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
 			*d.Spec.Replicas = 0
 			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
@@ -76,6 +79,23 @@ func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 		}
 	}
 	return downscaledDeployments, resultError
+}
+
+func restartDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+	var resultError error
+	restartedDeployments := 0
+	for _, d := range deployments.Items {
+		log.Infof("Restarting deployment %s from %d replicas", d.Name, d.Status.Replicas)
+		d.Spec.Template.Annotations[restartedAtAnnotation] = time.Now().Format(time.RFC3339)
+		d.Spec.Template.Annotations[changeCauseAnnotation] = "Restarted by szero"
+		_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
+		if err != nil {
+			resultError = errors.Join(fmt.Errorf("error restarting deployment %s: %v", d.Name, err))
+		} else {
+			restartedDeployments++
+		}
+	}
+	return restartedDeployments, resultError
 }
 
 func getDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
