@@ -19,3 +19,9 @@ Upscale all deployments in a namespace to their previous state:
 ```bash
 szero up -n <namespace>
 ```
+
+Restart all deployments in a namespace
+
+```bash
+szero restart -n <namespace>
+```
