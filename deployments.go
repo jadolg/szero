@@ -85,7 +85,10 @@ func restartDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 	var resultError error
 	restartedDeployments := 0
 	for _, d := range deployments.Items {
-		log.Infof("Restarting deployment %s from %d replicas", d.Name, d.Status.Replicas)
+		log.Infof("Restarting deployment %s", d.Name)
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = make(map[string]string)
+		}
 		d.Spec.Template.Annotations[restartedAtAnnotation] = time.Now().Format(time.RFC3339)
 		d.Spec.Template.Annotations[changeCauseAnnotation] = "Restarted by szero"
 		_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
