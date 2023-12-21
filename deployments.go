@@ -64,9 +64,11 @@ func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 	downscaledDeployments := 0
 	for _, d := range deployments.Items {
 		_, downscaled := d.Annotations[replicasAnnotation]
-		if !downscaled {
+		if !downscaled || *d.Spec.Replicas > 0 {
 			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
-			d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
+			if !downscaled {
+				d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
+			}
 			*d.Spec.Replicas = 0
 			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
