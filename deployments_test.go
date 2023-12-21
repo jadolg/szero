@@ -40,7 +40,7 @@ func TestDownscaleDeployments(t *testing.T) {
 		expectedOldScale   string
 	}{
 		{
-			name: "When the service was not previously downscaled then it is downscaled",
+			name: "When the deployment was not previously downscaled then it is downscaled",
 			deployment: v1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "test",
@@ -56,7 +56,7 @@ func TestDownscaleDeployments(t *testing.T) {
 			expectedOldScale:   "2",
 		},
 		{
-			name: "When the service was previously downscaled then nothing happens",
+			name: "When the deployment was previously downscaled then nothing happens",
 			deployment: v1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -70,6 +70,24 @@ func TestDownscaleDeployments(t *testing.T) {
 				},
 			},
 			expectedDownscaled: 0,
+			expectedReplicas:   0,
+			expectedOldScale:   "2",
+		},
+		{
+			name: "When the deployment has the downscaled annotation but the replicas are not 0 then the deployment gets downscaled",
+			deployment: v1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+					Annotations: map[string]string{
+						replicasAnnotation: "2",
+					},
+				},
+				Spec: v1.DeploymentSpec{
+					Replicas: int32Ptr(1),
+				},
+			},
+			expectedDownscaled: 1,
 			expectedReplicas:   0,
 			expectedOldScale:   "2",
 		},
