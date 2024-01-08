@@ -15,7 +15,7 @@ var (
 	Date       = "unknown"
 	BuiltBy    = "dirty hands"
 	kubeconfig string
-	namespace  string
+	namespaces []string
 	rootCmd    = &cobra.Command{
 		Use:   "szero",
 		Short: "Completely downscale and upscale back deployments",
@@ -31,7 +31,7 @@ func getDefaultPath() string {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultPath(), "Path to kubeconfig file")
-	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes namespace")
+	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
 
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()

@@ -8,8 +8,9 @@ import (
 )
 
 var restartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart all deployments in a namespace",
+	Use:     "restart",
+	Short:   "Restart all deployments in the desired namespaces",
+	Example: "szero restart -n default -n klum",
 	Run: func(cmd *cobra.Command, args []string) {
 		clientset, err := getClientset(kubeconfig)
 		if err != nil {
@@ -17,17 +18,19 @@ var restartCmd = &cobra.Command{
 		}
 
 		ctx := context.Background()
-		deployments, err := getDeployments(ctx, clientset, namespace)
-		if err != nil {
-			log.Fatal(err)
-		}
+		for _, namespace := range namespaces {
+			deployments, err := getDeployments(ctx, clientset, namespace)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		log.Infof("Found %d deployments", len(deployments.Items))
-		downscaled, err := restartDeployments(ctx, clientset, deployments)
-		if err != nil {
-			log.Fatal(err)
+			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
+			downscaled, err := restartDeployments(ctx, clientset, deployments)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Downscaled %d deployments", downscaled)
 		}
-		log.Infof("Downscaled %d deployments", downscaled)
 	},
 }
 
