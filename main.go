@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
@@ -22,7 +23,10 @@ var (
 	}
 )
 
-func getDefaultPath() string {
+func getDefaultKubeconfigPath() string {
+	if os.Getenv("KUBECONFIG") != "" {
+		return os.Getenv("KUBECONFIG")
+	}
 	if home := homedir.HomeDir(); home != "" {
 		return filepath.Join(home, ".kube", "config")
 	}
@@ -30,7 +34,7 @@ func getDefaultPath() string {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultPath(), "Path to kubeconfig file")
+	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
 	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
 
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
