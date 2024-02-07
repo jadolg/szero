@@ -1,4 +1,4 @@
-module szero
+module github.com/jadolg/szero
 
 go 1.21
 
