@@ -11,13 +11,14 @@ import (
 )
 
 var (
-	Version    = "dev"
-	Commit     = "none"
-	Date       = "unknown"
-	BuiltBy    = "dirty hands"
-	kubeconfig string
-	namespaces []string
-	rootCmd    = &cobra.Command{
+	Version     = "dev"
+	Commit      = "none"
+	Date        = "unknown"
+	BuiltBy     = "dirty hands"
+	kubeconfig  string
+	kubecontext string
+	namespaces  []string
+	rootCmd     = &cobra.Command{
 		Use:   "szero",
 		Short: "Completely downscale and upscale back deployments",
 	}
@@ -35,11 +36,12 @@ func getDefaultKubeconfigPath() string {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
+	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", getDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
 	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
 
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
-		clientset, err := getClientset(kubeconfig)
+		clientset, err := getClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -48,7 +50,18 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		contexts, err := getContexts()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return contexts, cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
+
 func main() {
 	err := rootCmd.Execute()
 	if err != nil {

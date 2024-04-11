@@ -12,7 +12,7 @@ var restartCmd = &cobra.Command{
 	Short:   "Restart all deployments in the desired namespaces",
 	Example: "szero restart -n default -n klum",
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset, err := getClientset(kubeconfig)
+		clientset, err := getClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}

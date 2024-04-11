@@ -13,7 +13,7 @@ var downCmd = &cobra.Command{
 	Example: "szero down -n default -n klum",
 	Aliases: []string{"downscale"},
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset, err := getClientset(kubeconfig)
+		clientset, err := getClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
