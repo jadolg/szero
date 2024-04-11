@@ -12,7 +12,7 @@ var upCmd = &cobra.Command{
 	Example: "szero up -n default -n klum",
 	Aliases: []string{"upscale"},
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset, err := getClientset(kubeconfig)
+		clientset, err := getClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}

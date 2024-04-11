@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"path/filepath"
 
@@ -11,13 +12,14 @@ import (
 )
 
 var (
-	Version    = "dev"
-	Commit     = "none"
-	Date       = "unknown"
-	BuiltBy    = "dirty hands"
-	kubeconfig string
-	namespaces []string
-	rootCmd    = &cobra.Command{
+	Version     = "dev"
+	Commit      = "none"
+	Date        = "unknown"
+	BuiltBy     = "dirty hands"
+	kubeconfig  string
+	kubecontext string
+	namespaces  []string
+	rootCmd     = &cobra.Command{
 		Use:   "szero",
 		Short: "Completely downscale and upscale back deployments",
 	}
@@ -33,17 +35,48 @@ func getDefaultKubeconfigPath() string {
 	return "kubeconfig"
 }
 
+func getDefaultKubernetesContext(kubeconfig string) string {
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+		&clientcmd.ConfigOverrides{
+			CurrentContext: "",
+		}).RawConfig()
+	if err != nil {
+		return ""
+	}
+	return config.CurrentContext
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
+	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", getDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
 	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
 
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
-		clientset, err := getClientset(kubeconfig)
+		clientset, err := getClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
 		return getNamespaces(ctx, clientset), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+			&clientcmd.ConfigOverrides{
+				CurrentContext: "",
+			}).RawConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
+		contexts := make([]string, 0, len(config.Contexts))
+		for key := range config.Contexts {
+			contexts = append(contexts, key)
+		}
+		return contexts, cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		log.Fatal(err)

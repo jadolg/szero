@@ -18,8 +18,12 @@ const replicasAnnotation = "szero/replicas"
 const restartedAtAnnotation = "kubernetes.io/restartedAt"
 const changeCauseAnnotation = "kubernetes.io/change-cause"
 
-func getClientset(kubeconfig string) (*kubernetes.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+func getClientset(kubeconfig, context string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+		&clientcmd.ConfigOverrides{
+			CurrentContext: context,
+		}).ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("error building config: %w", err)
 	}
