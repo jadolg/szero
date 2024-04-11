@@ -1,0 +1,37 @@
+plugins:
+  szero-down:
+    shortCut: Shift-D
+    confirm: true
+    dangerous: true
+    description: Scale all deployments down
+    scopes:
+      - namespace
+    command: sh
+    background: false
+    args:
+      - -c
+      - "szero down --context $CONTEXT --namespace $NAME"
+  szero-up:
+    shortCut: Shift-U
+    confirm: true
+    dangerous: true
+    description: Scale all deployments up
+    scopes:
+      - namespace
+    command: sh
+    background: false
+    args:
+      - -c
+      - "szero up --context $CONTEXT --namespace $NAME"
+  szero-restart:
+    shortCut: Shift-R
+    confirm: true
+    dangerous: true
+    description: Restart all deployments
+    scopes:
+      - namespace
+    command: sh
+    background: false
+    args:
+      - -c
+      - "szero restart --context $CONTEXT --namespace $NAME"

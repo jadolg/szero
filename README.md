@@ -44,3 +44,8 @@ For example, to enable bash completions, run:
 ```bash
 source <(szero completion bash)
 ```
+
+## k9s plugins
+
+Using [k9s](https://k9scli.io/)? You can use szero from within k9s as a plugin.
+To install copy the contents of the **k9s-plugins.yaml** file into your plugins file.
