@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"path/filepath"
 
@@ -35,18 +34,6 @@ func getDefaultKubeconfigPath() string {
 	return "kubeconfig"
 }
 
-func getDefaultKubernetesContext(kubeconfig string) string {
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: "",
-		}).RawConfig()
-	if err != nil {
-		return ""
-	}
-	return config.CurrentContext
-}
-
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
 	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", getDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
@@ -64,17 +51,9 @@ func init() {
 		log.Fatal(err)
 	}
 	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-			&clientcmd.ConfigOverrides{
-				CurrentContext: "",
-			}).RawConfig()
+		contexts, err := getContexts()
 		if err != nil {
 			log.Fatal(err)
-		}
-		contexts := make([]string, 0, len(config.Contexts))
-		for key := range config.Contexts {
-			contexts = append(contexts, key)
 		}
 		return contexts, cobra.ShellCompDirectiveNoFileComp
 	})
@@ -82,6 +61,7 @@ func init() {
 		log.Fatal(err)
 	}
 }
+
 func main() {
 	err := rootCmd.Execute()
 	if err != nil {
