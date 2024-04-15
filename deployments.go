@@ -42,7 +42,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 	for _, d := range deployments.Items {
 		replicas, downscaled := d.Annotations[replicasAnnotation]
 		if downscaled {
-			intReplicas, err := strconv.Atoi(replicas)
+			intReplicas, err := strconv.ParseInt(replicas, 10, 32)
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err))
 				continue
