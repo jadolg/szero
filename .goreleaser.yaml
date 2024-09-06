@@ -33,3 +33,30 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+snapcrafts:
+  - id: szero
+    name: szero
+    publish: true
+    summary: Temporarily scale down/up/restart all deployments in a namespace
+    description: |
+      Downscale all deployments in a namespace to 0 replicas and back to their
+      previous state. Useful when you need to tear everything down and bring
+      it back in a namespace.
+    channel_templates:
+      - stable
+    grade: stable
+    confinement: strict
+    license: MIT
+    base: core22
+    plugs:
+      dot-kube-config:
+        interface: personal-files
+        read:
+          - $HOME/.kube/config
+    apps:
+      szero:
+        command: szero
+        plugs: [ "network", "home", "removable-media", "dot-kube-config" ]
+        environment:
+          HOME: /home/$USER
