@@ -26,3 +26,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_TAP_GITHUB_SECRET: ${{ secrets.GORELEASER_TAP_GITHUB_SECRET }}

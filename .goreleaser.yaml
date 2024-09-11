@@ -33,3 +33,21 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+brews:
+  -
+    name: szero
+    homepage: "https://github.com/jadolg/szero"
+    description: "Temporarily scale down/up/restart all deployments in a namespace."
+    commit_author:
+      name: jadolg
+      email: diazorozcoj@gmail.com
+    repository:
+      token: "{{ .Env.GORELEASER_TAP_GITHUB_SECRET }}"
+      owner: jadolg
+      name: homebrew-tap
+      pull_request:
+        enabled: false
+    directory: Formula
+    install: |
+      bin.install "szero"
