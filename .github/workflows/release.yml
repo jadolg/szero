@@ -18,11 +18,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Install Snapcraft
-        run: |
-          sudo snap install snapcraft --classic --channel edge
-          mkdir -p $HOME/.cache/snapcraft/download
-          mkdir -p $HOME/.cache/snapcraft/stage-packages
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -31,4 +26,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
