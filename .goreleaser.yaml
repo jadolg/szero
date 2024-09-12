@@ -17,6 +17,10 @@ builds:
       - '-s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}} -X main.BuiltBy=goreleaser'
 
 archives:
+  - files:
+      - README.md
+      - LICENSE.md
+      - completions/*
   - format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
