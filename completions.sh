@@ -1,5 +1,5 @@
 #!/bin/sh
-# scripts/completions.sh
+
 set -e
 rm -rf completions
 mkdir completions
