@@ -50,4 +50,4 @@ brews:
       bash_completion.install "completions/szero.bash" => "szero"
       zsh_completion.install "completions/szero.zsh" => "_szero"
       fish_completion.install "completions/szero.fish"
-      man1.install "man/foo.1.gz"
+      man1.install "man/szero.1.gz"
