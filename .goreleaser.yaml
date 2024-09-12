@@ -3,6 +3,8 @@ version: 2
 before:
   hooks:
     - go mod tidy
+    - go build .
+    - ./completions.sh
 
 builds:
   - env:
@@ -51,3 +53,6 @@ brews:
     directory: Formula
     install: |
       bin.install "szero"
+      bash_completion.install "completions/szero.bash" => "szero"
+      zsh_completion.install "completions/szero.zsh" => "_szero"
+      fish_completion.install "completions/szero.fish"
