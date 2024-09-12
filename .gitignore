@@ -1,4 +1,5 @@
 /szero
 /.idea/
-
+/completions
+/man
 dist/
