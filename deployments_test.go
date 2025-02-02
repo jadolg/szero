@@ -12,7 +12,7 @@ import (
 
 func TestGetDeployments(t *testing.T) {
 	ctx := context.Background()
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	deployments, err := getDeployments(ctx, clientset, "default")
 	assert.NoError(t, err)
 	assert.Len(t, deployments.Items, 0)
@@ -96,7 +96,7 @@ func TestDownscaleDeployments(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			clientset := testclient.NewSimpleClientset()
+			clientset := testclient.NewClientset()
 
 			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
 			assert.NoError(t, err)
@@ -164,7 +164,7 @@ func TestUpscaleDeployments(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			clientset := testclient.NewSimpleClientset()
+			clientset := testclient.NewClientset()
 
 			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
 			assert.NoError(t, err)
@@ -232,7 +232,7 @@ func TestRestartDeployments(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			clientset := testclient.NewSimpleClientset()
+			clientset := testclient.NewClientset()
 
 			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
 			assert.NoError(t, err)

@@ -11,7 +11,7 @@ import (
 
 func TestGetNamespaces(t *testing.T) {
 	ctx := context.Background()
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	namespaces := getNamespaces(ctx, clientset)
 	assert.Len(t, namespaces, 0)
 
