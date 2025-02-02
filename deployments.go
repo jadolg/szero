@@ -44,7 +44,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 		if downscaled {
 			intReplicas, err := strconv.ParseInt(replicas, 10, 32)
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err))
+				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err), resultError)
 				continue
 			}
 			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
@@ -52,7 +52,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 			delete(d.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err))
+				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err), resultError)
 			} else {
 				upscaledDeployments++
 			}
@@ -76,7 +76,7 @@ func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 			*d.Spec.Replicas = 0
 			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err))
+				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err), resultError)
 			} else {
 				downscaledDeployments++
 			}
@@ -99,7 +99,7 @@ func restartDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 		d.Spec.Template.Annotations[changeCauseAnnotation] = "Restarted by szero"
 		_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error restarting deployment %s: %v", d.Name, err))
+			resultError = errors.Join(fmt.Errorf("error restarting deployment %s: %v", d.Name, err), resultError)
 		} else {
 			restartedDeployments++
 		}
