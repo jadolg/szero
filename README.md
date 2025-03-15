@@ -1,5 +1,7 @@
 # Temporarily scale down all deployments in a namespace
 
+![szero](szero.png)
+
 ### What it does
 
 Downscale all deployments in a namespace to 0 replicas and back to their
