@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/jadolg/szero/pkg"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -12,32 +13,32 @@ var restartCmd = &cobra.Command{
 	Short:   "Restart all deployments/statefulsets in the desired namespaces",
 	Example: "szero restart -n default -n klum",
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset, err := getClientset(kubeconfig, kubecontext)
+		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		ctx := context.Background()
 		for _, namespace := range namespaces {
-			deployments, err := getDeployments(ctx, clientset, namespace)
+			deployments, err := pkg.GetDeployments(ctx, clientset, namespace)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-			restartedDeployments, err := restartDeployments(ctx, clientset, deployments)
+			restartedDeployments, err := pkg.RestartDeployments(ctx, clientset, deployments)
 			if err != nil {
 				log.Fatal(err)
 			}
 			log.Infof("Restarted %d deployments", restartedDeployments)
 
-			statefulsets, err := getStatefulSets(ctx, clientset, namespace)
+			statefulsets, err := pkg.GetStatefulSets(ctx, clientset, namespace)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
-			restartedStatefulsets, err := restartStatefulSets(ctx, clientset, statefulsets)
+			restartedStatefulsets, err := pkg.RestartStatefulSets(ctx, clientset, statefulsets)
 			if err != nil {
 				log.Fatal(err)
 			}

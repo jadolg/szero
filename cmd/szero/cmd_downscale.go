@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/jadolg/szero/pkg"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -13,32 +14,32 @@ var downCmd = &cobra.Command{
 	Example: "szero down -n default -n klum",
 	Aliases: []string{"downscale"},
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset, err := getClientset(kubeconfig, kubecontext)
+		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		ctx := context.Background()
 		for _, namespace := range namespaces {
-			deployments, err := getDeployments(ctx, clientset, namespace)
+			deployments, err := pkg.GetDeployments(ctx, clientset, namespace)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-			downscaledDeployments, err := downscaleDeployments(ctx, clientset, deployments)
+			downscaledDeployments, err := pkg.DownscaleDeployments(ctx, clientset, deployments)
 			if err != nil {
 				log.Fatal(err)
 			}
 			log.Infof("Downscaled %d deployments", downscaledDeployments)
 
-			statefulsets, err := getStatefulSets(ctx, clientset, namespace)
+			statefulsets, err := pkg.GetStatefulSets(ctx, clientset, namespace)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
-			downscaledStatefulsets, err := downscaleStatefulSets(ctx, clientset, statefulsets)
+			downscaledStatefulsets, err := pkg.DownscaleStatefulSets(ctx, clientset, statefulsets)
 			if err != nil {
 				log.Fatal(err)
 			}

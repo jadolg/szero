@@ -1,8 +1,8 @@
-package main
+package pkg
 
 import "k8s.io/client-go/tools/clientcmd"
 
-func getDefaultKubernetesContext(kubeconfig string) string {
+func GetDefaultKubernetesContext(kubeconfig string) string {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{
@@ -14,7 +14,7 @@ func getDefaultKubernetesContext(kubeconfig string) string {
 	return config.CurrentContext
 }
 
-func getContexts() ([]string, error) {
+func GetKubernetesContexts(kubeconfig string) ([]string, error) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{

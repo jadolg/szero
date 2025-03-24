@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 func TestGetNamespaces(t *testing.T) {
 	ctx := context.Background()
 	clientset := testclient.NewClientset()
-	namespaces := getNamespaces(ctx, clientset)
+	namespaces := GetNamespaces(ctx, clientset)
 	assert.Len(t, namespaces, 0)
 
 	_, err := clientset.CoreV1().Namespaces().Create(
@@ -26,7 +26,7 @@ func TestGetNamespaces(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	newNamespaces := getNamespaces(ctx, clientset)
+	newNamespaces := GetNamespaces(ctx, clientset)
 	assert.Len(t, newNamespaces, 1)
 	assert.Equal(t, "test", newNamespaces[0])
 }

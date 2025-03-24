@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func (u *DeploymentUpdater) Update(ctx context.Context, namespace string, r Reso
 	return err
 }
 
-func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	resources := make([]Resource, len(deployments.Items))
 	for i := range deployments.Items {
 		resources[i] = &DeploymentResource{&deployments.Items[i]}
@@ -48,7 +48,7 @@ func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 	return upscaleResource(ctx, resources, updater)
 }
 
-func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	resources := make([]Resource, len(deployments.Items))
 	for i := range deployments.Items {
 		resources[i] = &DeploymentResource{&deployments.Items[i]}
@@ -58,7 +58,7 @@ func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 	return downscaleResource(ctx, resources, updater)
 }
 
-func restartDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+func RestartDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	resources := make([]Resource, len(deployments.Items))
 	for i := range deployments.Items {
 		resources[i] = &DeploymentResource{&deployments.Items[i]}
@@ -68,7 +68,7 @@ func restartDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 	return restartResource(ctx, resources, updater)
 }
 
-func getDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
+func GetDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting deployments: %w", err)
