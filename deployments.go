@@ -2,109 +2,70 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strconv"
-	"time"
-
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
-const replicasAnnotation = "szero/replicas"
-const restartedAtAnnotation = "kubernetes.io/restartedAt"
-const changeCauseAnnotation = "kubernetes.io/change-cause"
+// DeploymentResource adapts Deployment to Resource interface
+type DeploymentResource struct {
+	*v1.Deployment
+}
 
-func getClientset(kubeconfig, context string) (*kubernetes.Clientset, error) {
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: context,
-		}).ClientConfig()
-	if err != nil {
-		return nil, fmt.Errorf("error building config: %w", err)
+func (d *DeploymentResource) GetReplicas() *int32  { return d.Spec.Replicas }
+func (d *DeploymentResource) SetReplicas(r *int32) { d.Spec.Replicas = r }
+
+func (d *DeploymentResource) GetTemplateAnnotations() map[string]string {
+	return d.Spec.Template.Annotations
+}
+
+func (d *DeploymentResource) SetTemplateAnnotations(annotations map[string]string) {
+	d.Spec.Template.Annotations = annotations
+}
+
+// DeploymentUpdater implements ResourceUpdater for Deployments
+type DeploymentUpdater struct {
+	clientset kubernetes.Interface
+}
+
+func (u *DeploymentUpdater) Update(ctx context.Context, namespace string, r Resource) error {
+	d, ok := r.(*DeploymentResource)
+	if !ok {
+		return fmt.Errorf("invalid resource type")
 	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error building clientset: %w", err)
-	}
-
-	return clientset, nil
+	_, err := u.clientset.AppsV1().Deployments(namespace).Update(ctx, d.Deployment, metav1.UpdateOptions{})
+	return err
 }
 
 func upscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	var resultError error
-	upscaledDeployments := 0
-	for _, d := range deployments.Items {
-		replicas, downscaled := d.Annotations[replicasAnnotation]
-		if downscaled {
-			intReplicas, err := strconv.ParseInt(replicas, 10, 32)
-			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err), resultError)
-				continue
-			}
-			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
-			*d.Spec.Replicas = int32(intReplicas)
-			delete(d.Annotations, replicasAnnotation)
-			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
-			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err), resultError)
-			} else {
-				upscaledDeployments++
-			}
-		} else {
-			log.Infof("Deployment %s already scaled up", d.Name)
-		}
+	resources := make([]Resource, len(deployments.Items))
+	for i := range deployments.Items {
+		resources[i] = &DeploymentResource{&deployments.Items[i]}
 	}
-	return upscaledDeployments, resultError
+
+	updater := &DeploymentUpdater{clientset: clientset}
+	return upscaleResource(ctx, resources, updater)
 }
 
 func downscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	var resultError error
-	downscaledDeployments := 0
-	for _, d := range deployments.Items {
-		_, downscaled := d.Annotations[replicasAnnotation]
-		if !downscaled || *d.Spec.Replicas > 0 {
-			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
-			if !downscaled {
-				d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
-			}
-			*d.Spec.Replicas = 0
-			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
-			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err), resultError)
-			} else {
-				downscaledDeployments++
-			}
-		} else {
-			log.Infof("Deployment %s already downscaled", d.Name)
-		}
+	resources := make([]Resource, len(deployments.Items))
+	for i := range deployments.Items {
+		resources[i] = &DeploymentResource{&deployments.Items[i]}
 	}
-	return downscaledDeployments, resultError
+
+	updater := &DeploymentUpdater{clientset: clientset}
+	return downscaleResource(ctx, resources, updater)
 }
 
 func restartDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	var resultError error
-	restartedDeployments := 0
-	for _, d := range deployments.Items {
-		log.Infof("Restarting deployment %s", d.Name)
-		if d.Spec.Template.Annotations == nil {
-			d.Spec.Template.Annotations = make(map[string]string)
-		}
-		d.Spec.Template.Annotations[restartedAtAnnotation] = time.Now().Format(time.RFC3339)
-		d.Spec.Template.Annotations[changeCauseAnnotation] = "Restarted by szero"
-		_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
-		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error restarting deployment %s: %v", d.Name, err), resultError)
-		} else {
-			restartedDeployments++
-		}
+	resources := make([]Resource, len(deployments.Items))
+	for i := range deployments.Items {
+		resources[i] = &DeploymentResource{&deployments.Items[i]}
 	}
-	return restartedDeployments, resultError
+
+	updater := &DeploymentUpdater{clientset: clientset}
+	return restartResource(ctx, resources, updater)
 }
 
 func getDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {

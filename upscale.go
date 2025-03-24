@@ -8,7 +8,7 @@ import (
 
 var upCmd = &cobra.Command{
 	Use:     "up",
-	Short:   "Upscale all deployments in the desired namespaces to their original size",
+	Short:   "Upscale all deployments/statefulsets in the desired namespaces to their original size",
 	Example: "szero up -n default -n klum",
 	Aliases: []string{"upscale"},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -25,11 +25,23 @@ var upCmd = &cobra.Command{
 			}
 
 			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-			upscaled, err := upscaleDeployments(ctx, clientset, deployments)
+			upscaledDeployments, err := upscaleDeployments(ctx, clientset, deployments)
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Infof("Upscaled %d deployments", upscaled)
+			log.Infof("Upscaled %d deployments", upscaledDeployments)
+
+			statefulsets, err := getStatefulSets(ctx, clientset, namespace)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
+			upscaledStatefulsets, err := upscaleStatefulSets(ctx, clientset, statefulsets)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Upscaled %d statefulsets", upscaledStatefulsets)
 		}
 	},
 }
