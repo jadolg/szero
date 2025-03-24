@@ -9,7 +9,7 @@ import (
 
 var downCmd = &cobra.Command{
 	Use:     "down",
-	Short:   "Downscale all deployments in the desired namespaces",
+	Short:   "Downscale all deployments/statefulsets in the desired namespaces",
 	Example: "szero down -n default -n klum",
 	Aliases: []string{"downscale"},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -26,11 +26,24 @@ var downCmd = &cobra.Command{
 			}
 
 			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-			downscaled, err := downscaleDeployments(ctx, clientset, deployments)
+			downscaledDeployments, err := downscaleDeployments(ctx, clientset, deployments)
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Infof("Downscaled %d deployments", downscaled)
+			log.Infof("Downscaled %d deployments", downscaledDeployments)
+
+			statefulsets, err := getStatefulSets(ctx, clientset, namespace)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
+			downscaledStatefulsets, err := downscaleStatefulSets(ctx, clientset, statefulsets)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Downscaled %d statefulsets", downscaledStatefulsets)
+
 		}
 	},
 }
