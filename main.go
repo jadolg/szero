@@ -21,7 +21,7 @@ var (
 	rootCmd     = &cobra.Command{
 		Use:   "szero",
 		Short: "Temporarily scale down/up/restart all deployments and statefulsets in a namespace",
-		Long:  "Downscale all deployments in a namespace to 0 replicas and back to their previous state. Useful when you need to tear everything down and bring it back in a namespace.",
+		Long:  "Downscale all deployments and statefulsets in a namespace to 0 replicas and back to their previous state. Useful when you need to tear everything down and bring it back in a namespace.",
 	}
 )
 
