@@ -3,7 +3,7 @@ version: 2
 before:
   hooks:
     - go mod tidy
-    - go build .
+    - go build -o . ./...
     - ./completions.sh
     - ./manpages.sh
 
@@ -16,6 +16,7 @@ builds:
       - darwin
     ldflags:
       - '-s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}} -X main.BuiltBy=goreleaser'
+    main: ./cmd/szero
 
 archives:
   - files:

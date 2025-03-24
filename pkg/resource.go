@@ -1,4 +1,4 @@
-package main // Resource represents either a Deployment or StatefulSet
+package pkg // Resource represents either a Deployment or StatefulSet
 import (
 	"context"
 	"errors"
@@ -120,7 +120,7 @@ func ptr(i int32) *int32 {
 	return &i
 }
 
-func getClientset(kubeconfig, context string) (*kubernetes.Clientset, error) {
+func GetClientset(kubeconfig, context string) (*kubernetes.Clientset, error) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{

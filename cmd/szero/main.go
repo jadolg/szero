@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/jadolg/szero/pkg"
 	"os"
 	"path/filepath"
 
@@ -37,22 +38,22 @@ func getDefaultKubeconfigPath() string {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
-	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", getDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
+	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", pkg.GetDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
 	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
-		clientset, err := getClientset(kubeconfig, kubecontext)
+		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
 		}
-		return getNamespaces(ctx, clientset), cobra.ShellCompDirectiveNoFileComp
+		return pkg.GetNamespaces(ctx, clientset), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		contexts, err := getContexts()
+		contexts, err := pkg.GetKubernetesContexts(kubeconfig)
 		if err != nil {
 			log.Fatal(err)
 		}

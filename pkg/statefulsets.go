@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func (u *StatefulSetUpdater) Update(ctx context.Context, namespace string, r Res
 	return err
 }
 
-func upscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
+func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
 	resources := make([]Resource, len(statefulsets.Items))
 	for i := range statefulsets.Items {
 		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
@@ -47,7 +47,7 @@ func upscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 	return upscaleResource(ctx, resources, updater)
 }
 
-func downscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
+func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
 	resources := make([]Resource, len(statefulsets.Items))
 	for i := range statefulsets.Items {
 		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
@@ -57,7 +57,7 @@ func downscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, 
 	return downscaleResource(ctx, resources, updater)
 }
 
-func restartStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
+func RestartStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
 	resources := make([]Resource, len(statefulsets.Items))
 	for i := range statefulsets.Items {
 		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
@@ -67,7 +67,7 @@ func restartStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 	return restartResource(ctx, resources, updater)
 }
 
-func getStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.StatefulSetList, error) {
+func GetStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.StatefulSetList, error) {
 	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting statefulsets: %w", err)

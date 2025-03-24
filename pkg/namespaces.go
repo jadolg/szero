@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func getNamespaces(ctx context.Context, clientset kubernetes.Interface) []string {
+func GetNamespaces(ctx context.Context, clientset kubernetes.Interface) []string {
 	namespaces, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		log.Error(err)

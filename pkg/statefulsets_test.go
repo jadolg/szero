@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -10,44 +10,44 @@ import (
 	"testing"
 )
 
-func TestGetDeployments(t *testing.T) {
+func TestGetStatefulsets(t *testing.T) {
 	ctx := context.Background()
 	clientset := testclient.NewClientset()
-	deployments, err := getDeployments(ctx, clientset, "default")
+	statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 	assert.NoError(t, err)
-	assert.Len(t, deployments.Items, 0)
+	assert.Len(t, statefulsets.Items, 0)
 
-	deployment := v1.Deployment{
+	statefulset := v1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
 		},
 	}
-	_, err = clientset.AppsV1().Deployments("default").Create(ctx, &deployment, metav1.CreateOptions{})
+	_, err = clientset.AppsV1().StatefulSets("default").Create(ctx, &statefulset, metav1.CreateOptions{})
 	assert.NoError(t, err)
 
-	newDeployments, err := getDeployments(ctx, clientset, "default")
+	newStatefulsets, err := GetStatefulSets(ctx, clientset, "default")
 	assert.NoError(t, err)
-	assert.Len(t, newDeployments.Items, 1)
+	assert.Len(t, newStatefulsets.Items, 1)
 }
 
-func TestDownscaleDeployments(t *testing.T) {
+func TestDownscaleStatefulSets(t *testing.T) {
 	testCases := []struct {
 		name               string
-		deployment         v1.Deployment
+		statefulset        v1.StatefulSet
 		expectedDownscaled int
 		expectedReplicas   int32
 		expectedOldScale   string
 	}{
 		{
-			name: "When the deployment was not previously downscaled then it is downscaled",
-			deployment: v1.Deployment{
+			name: "When the statefulset was not previously downscaled then it is downscaled",
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "test",
 					Namespace:   "default",
 					Annotations: map[string]string{},
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(2),
 				},
 			},
@@ -56,8 +56,8 @@ func TestDownscaleDeployments(t *testing.T) {
 			expectedOldScale:   "2",
 		},
 		{
-			name: "When the deployment was previously downscaled then nothing happens",
-			deployment: v1.Deployment{
+			name: "When the statefulset was previously downscaled then nothing happens",
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
@@ -65,7 +65,7 @@ func TestDownscaleDeployments(t *testing.T) {
 						replicasAnnotation: "2",
 					},
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(0),
 				},
 			},
@@ -74,8 +74,8 @@ func TestDownscaleDeployments(t *testing.T) {
 			expectedOldScale:   "2",
 		},
 		{
-			name: "When the deployment has the downscaled annotation but the replicas are not 0 then the deployment gets downscaled",
-			deployment: v1.Deployment{
+			name: "When the statefulset has the downscaled annotation but the replicas are not 0 then the statefulset gets downscaled",
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
@@ -83,7 +83,7 @@ func TestDownscaleDeployments(t *testing.T) {
 						replicasAnnotation: "2",
 					},
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(1),
 				},
 			},
@@ -98,17 +98,17 @@ func TestDownscaleDeployments(t *testing.T) {
 			ctx := context.Background()
 			clientset := testclient.NewClientset()
 
-			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
+			_, err := clientset.AppsV1().StatefulSets("default").Create(ctx, &tc.statefulset, metav1.CreateOptions{})
 			assert.NoError(t, err)
 
-			deployments, err := getDeployments(ctx, clientset, "default")
+			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			downscaled, err := downscaleDeployments(ctx, clientset, deployments)
+			downscaled, err := DownscaleStatefulSets(ctx, clientset, statefulsets)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedDownscaled, downscaled)
 
-			newDeployments, err := getDeployments(ctx, clientset, "default")
+			newDeployments, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
 			for _, d := range newDeployments.Items {
@@ -121,16 +121,16 @@ func TestDownscaleDeployments(t *testing.T) {
 	}
 }
 
-func TestUpscaleDeployments(t *testing.T) {
+func TestUpscaleStatefulSets(t *testing.T) {
 	testCases := []struct {
 		name             string
-		deployment       v1.Deployment
+		statefulset      v1.StatefulSet
 		expectedUpscaled int
 		expectedReplicas int32
 	}{
 		{
 			name: "When the service was previously downscaled then it is upscaled",
-			deployment: v1.Deployment{
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
@@ -138,7 +138,7 @@ func TestUpscaleDeployments(t *testing.T) {
 						replicasAnnotation: "2",
 					},
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(0),
 				},
 			},
@@ -147,12 +147,12 @@ func TestUpscaleDeployments(t *testing.T) {
 		},
 		{
 			name: "When the service was previously was not downscaled then nothing happens",
-			deployment: v1.Deployment{
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(1),
 				},
 			},
@@ -166,17 +166,17 @@ func TestUpscaleDeployments(t *testing.T) {
 			ctx := context.Background()
 			clientset := testclient.NewClientset()
 
-			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
+			_, err := clientset.AppsV1().StatefulSets("default").Create(ctx, &tc.statefulset, metav1.CreateOptions{})
 			assert.NoError(t, err)
 
-			deployments, err := getDeployments(ctx, clientset, "default")
+			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := upscaleDeployments(ctx, clientset, deployments)
+			upscaled, err := UpscaleStatefulSets(ctx, clientset, statefulsets)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUpscaled, upscaled)
 
-			newDeployments, err := getDeployments(ctx, clientset, "default")
+			newDeployments, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
 			for _, d := range newDeployments.Items {
@@ -188,24 +188,19 @@ func TestUpscaleDeployments(t *testing.T) {
 	}
 }
 
-func int32Ptr(i int) *int32 {
-	ptr := int32(i)
-	return &ptr
-}
-
-func TestRestartDeployments(t *testing.T) {
+func TestRestartStatefulSets(t *testing.T) {
 	testCases := []struct {
-		name       string
-		deployment v1.Deployment
+		name        string
+		statefulset v1.StatefulSet
 	}{
 		{
 			name: "When annotations are present then annotations are updated",
-			deployment: v1.Deployment{
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(1),
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -217,12 +212,12 @@ func TestRestartDeployments(t *testing.T) {
 		},
 		{
 			name: "When annotations are not present then annotations are initialized and then updated",
-			deployment: v1.Deployment{
+			statefulset: v1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "default",
 				},
-				Spec: v1.DeploymentSpec{
+				Spec: v1.StatefulSetSpec{
 					Replicas: int32Ptr(1),
 				},
 			},
@@ -234,17 +229,17 @@ func TestRestartDeployments(t *testing.T) {
 			ctx := context.Background()
 			clientset := testclient.NewClientset()
 
-			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
+			_, err := clientset.AppsV1().StatefulSets("default").Create(ctx, &tc.statefulset, metav1.CreateOptions{})
 			assert.NoError(t, err)
 
-			deployments, err := getDeployments(ctx, clientset, "default")
+			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := restartDeployments(ctx, clientset, deployments)
+			upscaled, err := RestartStatefulSets(ctx, clientset, statefulsets)
 			assert.NoError(t, err)
 			assert.Equal(t, 1, upscaled)
 
-			newDeployments, err := getDeployments(ctx, clientset, "default")
+			newDeployments, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
 			for _, d := range newDeployments.Items {
