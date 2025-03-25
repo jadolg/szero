@@ -2,16 +2,16 @@ package pkg
 
 import "k8s.io/client-go/tools/clientcmd"
 
-func GetDefaultKubernetesContext(kubeconfig string) string {
+func GetDefaultKubernetesContextAndNamespace(kubeconfig string) (string, string) {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{
 			CurrentContext: "",
 		}).RawConfig()
 	if err != nil {
-		return ""
+		return "", "default"
 	}
-	return config.CurrentContext
+	return config.CurrentContext, config.Contexts[config.CurrentContext].Namespace
 }
 
 func GetKubernetesContexts(kubeconfig string) ([]string, error) {
