@@ -37,9 +37,10 @@ func getDefaultKubeconfigPath() string {
 }
 
 func init() {
+	defaultContext, defaultNamespace := pkg.GetDefaultKubernetesContextAndNamespace(getDefaultKubeconfigPath())
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
-	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", pkg.GetDefaultKubernetesContext(getDefaultKubeconfigPath()), "Kubernetes context")
-	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{"default"}, "Kubernetes namespace")
+	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", defaultContext, "Kubernetes context")
+	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{defaultNamespace}, "Kubernetes namespace")
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
