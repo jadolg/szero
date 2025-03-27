@@ -3,7 +3,7 @@ plugins:
     shortCut: Shift-D
     confirm: true
     dangerous: true
-    description: Scale all deployments down
+    description: Scale all deployments/statefulsets down
     scopes:
       - namespace
     command: sh
@@ -15,7 +15,7 @@ plugins:
     shortCut: Shift-U
     confirm: true
     dangerous: true
-    description: Scale all deployments up
+    description: Scale all deployments/statefulsets up
     scopes:
       - namespace
     command: sh
@@ -27,7 +27,7 @@ plugins:
     shortCut: Shift-R
     confirm: true
     dangerous: true
-    description: Restart all deployments
+    description: Restart all deployments/statefulsets
     scopes:
       - namespace
     command: sh
