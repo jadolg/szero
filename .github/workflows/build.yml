@@ -19,7 +19,13 @@ jobs:
           go-version-file: go.mod
 
       - name: Build
-        run: go build -v ./...
+        run: go build -o . -v ./...
 
       - name: Test
         run: go test -v ./...
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+
+      - name: Integration Test
+        run: ./tests/test.sh

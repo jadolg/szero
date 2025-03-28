@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testdeployment001
+  labels:
+    app: testdeployment001
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: testdeployment001
+  template:
+    metadata:
+      name: testdeployment001
+      labels:
+        app: testdeployment001
+    spec:
+      containers:
+        - name: testdeployment001
+          image: guamulo/serverip
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always
