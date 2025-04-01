@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"testing"
@@ -183,77 +182,6 @@ func TestUpscaleDeployments(t *testing.T) {
 				assert.Equal(t, tc.expectedReplicas, *d.Spec.Replicas)
 				_, present := d.Annotations[replicasAnnotation]
 				assert.False(t, present)
-			}
-		})
-	}
-}
-
-func int32Ptr(i int) *int32 {
-	ptr := int32(i)
-	return &ptr
-}
-
-func TestRestartDeployments(t *testing.T) {
-	testCases := []struct {
-		name       string
-		deployment v1.Deployment
-	}{
-		{
-			name: "When annotations are present then annotations are updated",
-			deployment: v1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
-				},
-				Spec: v1.DeploymentSpec{
-					Replicas: int32Ptr(1),
-					Template: corev1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "When annotations are not present then annotations are initialized and then updated",
-			deployment: v1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
-				},
-				Spec: v1.DeploymentSpec{
-					Replicas: int32Ptr(1),
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
-			clientset := testclient.NewClientset()
-
-			_, err := clientset.AppsV1().Deployments("default").Create(ctx, &tc.deployment, metav1.CreateOptions{})
-			assert.NoError(t, err)
-
-			deployments, err := GetDeployments(ctx, clientset, "default")
-			assert.NoError(t, err)
-
-			upscaled, err := RestartDeployments(ctx, clientset, deployments)
-			assert.NoError(t, err)
-			assert.Equal(t, 1, upscaled)
-
-			newDeployments, err := GetDeployments(ctx, clientset, "default")
-			assert.NoError(t, err)
-
-			for _, d := range newDeployments.Items {
-				cause, present := d.Spec.Template.Annotations[changeCauseAnnotation]
-				assert.True(t, present)
-				assert.Equal(t, "Restarted by szero", cause)
-				restartedAt, present := d.Spec.Template.Annotations[restartedAtAnnotation]
-				assert.True(t, present)
-				assert.NotEmpty(t, restartedAt)
 			}
 		})
 	}

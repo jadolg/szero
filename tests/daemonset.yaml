@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: testdaemonset001
+spec:
+  selector:
+    matchLabels:
+      app: testdaemonset001
+  template:
+    metadata:
+      labels:
+        app: testdaemonset001
+    spec:
+      containers:
+        - name: busybox
+          image: busybox
+          args:
+            - /bin/sh
+            - -c
+            - 'while true; do ping -c 4 8.8.8.8; sleep 60; done'

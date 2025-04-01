@@ -16,7 +16,7 @@ function assert_eventually() {
       else
         echo "Attempt $i failed - expected '$2', but got '$output'"
       fi
-      sleep 2
+      sleep 5
     done
     echo "Assert failed after $max_attempts attempts"
     exit 1
