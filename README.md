@@ -23,6 +23,12 @@ brew install szero
 szero down -n <namespace> -n <another_namespace>
 ```
 
+#### Downscale all deployments skipping statefulsets and daemonsets:
+
+```bash
+szero down --namespace <namespace> --skip-statefulsets --skip-daemonsets
+```
+
 #### Upscale all deployments, statefulsets, and daemonsets in a namespace to their previous state:
 
 ```bash
