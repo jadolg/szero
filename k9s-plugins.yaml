@@ -3,7 +3,7 @@ plugins:
     shortCut: Shift-D
     confirm: true
     dangerous: true
-    description: Scale all deployments/statefulsets down
+    description: Scale all deployments/statefulsets/daemonsets down
     scopes:
       - namespace
     command: sh
@@ -15,7 +15,7 @@ plugins:
     shortCut: Shift-U
     confirm: true
     dangerous: true
-    description: Scale all deployments/statefulsets up
+    description: Scale all deployments/statefulsets/daemonsets up
     scopes:
       - namespace
     command: sh
@@ -23,15 +23,3 @@ plugins:
     args:
       - -c
       - "szero up --context $CONTEXT --namespace $NAME"
-  szero-restart:
-    shortCut: Shift-R
-    confirm: true
-    dangerous: true
-    description: Restart all deployments/statefulsets
-    scopes:
-      - namespace
-    command: sh
-    background: false
-    args:
-      - -c
-      - "szero restart --context $CONTEXT --namespace $NAME"
