@@ -20,38 +20,50 @@ var upCmd = &cobra.Command{
 
 		ctx := context.Background()
 		for _, namespace := range namespaces {
-			deployments, err := pkg.GetDeployments(ctx, clientset, namespace)
-			if err != nil {
-				log.Fatal(err)
+			if skipDeployments {
+				log.Infof("Skipping deployments in namespace %s", namespace)
+			} else {
+				deployments, err := pkg.GetDeployments(ctx, clientset, namespace)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
+				upscaledDeployments, err := pkg.UpscaleDeployments(ctx, clientset, deployments)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Upscaled %d deployments", upscaledDeployments)
 			}
-			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-			upscaledDeployments, err := pkg.UpscaleDeployments(ctx, clientset, deployments)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Infof("Upscaled %d deployments", upscaledDeployments)
 
-			statefulsets, err := pkg.GetStatefulSets(ctx, clientset, namespace)
-			if err != nil {
-				log.Fatal(err)
+			if skipStatefulsets {
+				log.Infof("Skipping statefulsets in namespace %s", namespace)
+			} else {
+				statefulsets, err := pkg.GetStatefulSets(ctx, clientset, namespace)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
+				upscaledStatefulsets, err := pkg.UpscaleStatefulSets(ctx, clientset, statefulsets)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Upscaled %d statefulsets", upscaledStatefulsets)
 			}
-			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
-			upscaledStatefulsets, err := pkg.UpscaleStatefulSets(ctx, clientset, statefulsets)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Infof("Upscaled %d statefulsets", upscaledStatefulsets)
 
-			daemonsets, err := pkg.GetDaemonsets(ctx, clientset, namespace)
-			if err != nil {
-				log.Fatal(err)
+			if skipDaemonsets {
+				log.Infof("Skipping daemonsets in namespace %s", namespace)
+			} else {
+				daemonsets, err := pkg.GetDaemonsets(ctx, clientset, namespace)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Found %d daemonsets in namespace %s", len(daemonsets.Items), namespace)
+				upscaledDaemonsets, err := pkg.UpscaleDaemonsets(ctx, clientset, daemonsets)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Infof("Upscaled %d daemonsets", upscaledDaemonsets)
 			}
-			log.Infof("Found %d daemonsets in namespace %s", len(daemonsets.Items), namespace)
-			upscaledDaemonsets, err := pkg.UpscaleDaemonsets(ctx, clientset, daemonsets)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Infof("Upscaled %d daemonsets", upscaledDaemonsets)
 		}
 	},
 }

@@ -19,7 +19,12 @@ var (
 	kubeconfig  string
 	kubecontext string
 	namespaces  []string
-	rootCmd     = &cobra.Command{
+
+	skipDaemonsets   bool
+	skipStatefulsets bool
+	skipDeployments  bool
+
+	rootCmd = &cobra.Command{
 		Use:   "szero",
 		Short: "Temporarily scale down/up all deployments, statefulsets, and daemonsets in a namespace",
 		Long:  "Downscale all deployments, statefulsets, and daemonsets in a namespace to 0 replicas and back to their previous state. Useful when you need to tear everything down and bring it back in a namespace.",
@@ -41,6 +46,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "k", getDefaultKubeconfigPath(), "Path to kubeconfig file")
 	rootCmd.PersistentFlags().StringVarP(&kubecontext, "context", "c", defaultContext, "Kubernetes context")
 	rootCmd.PersistentFlags().StringSliceVarP(&namespaces, "namespace", "n", []string{defaultNamespace}, "Kubernetes namespace")
+
+	rootCmd.PersistentFlags().BoolVarP(&skipDaemonsets, "skip-daemonsets", "d", false, "Skip daemonsets")
+	rootCmd.PersistentFlags().BoolVarP(&skipStatefulsets, "skip-statefulsets", "s", false, "Skip statefulsets")
+	rootCmd.PersistentFlags().BoolVarP(&skipDeployments, "skip-deployments", "p", false, "Skip deployments")
+
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
