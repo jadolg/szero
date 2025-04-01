@@ -2,69 +2,64 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"strconv"
 )
 
-// StatefulSetResource adapts StatefulSet to Resource interface
-type StatefulSetResource struct {
-	*v1.StatefulSet
-}
-
-func (s *StatefulSetResource) GetReplicas() *int32  { return s.Spec.Replicas }
-func (s *StatefulSetResource) SetReplicas(r *int32) { s.Spec.Replicas = r }
-func (s *StatefulSetResource) GetTemplateAnnotations() map[string]string {
-	return s.Spec.Template.Annotations
-}
-
-func (s *StatefulSetResource) SetTemplateAnnotations(annotations map[string]string) {
-	s.Spec.Template.Annotations = annotations
-}
-
-// StatefulSetUpdater implements ResourceUpdater for Statefulsets
-type StatefulSetUpdater struct {
-	clientset kubernetes.Interface
-}
-
-func (u *StatefulSetUpdater) Update(ctx context.Context, namespace string, r Resource) error {
-	d, ok := r.(*StatefulSetResource)
-	if !ok {
-		return fmt.Errorf("invalid resource type")
-	}
-	_, err := u.clientset.AppsV1().StatefulSets(namespace).Update(ctx, d.StatefulSet, metav1.UpdateOptions{})
-	return err
-}
-
 func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
-	resources := make([]Resource, len(statefulsets.Items))
-	for i := range statefulsets.Items {
-		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
+	var resultError error
+	upscaledStatefulsets := 0
+	for _, s := range statefulsets.Items {
+		replicas, downscaled := s.Annotations[replicasAnnotation]
+		if downscaled {
+			intReplicas, err := strconv.ParseInt(replicas, 10, 32)
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err), resultError)
+				continue
+			}
+			log.Infof("Scaling up statefulset %s to %d replicas", s.Name, intReplicas)
+			*s.Spec.Replicas = int32(intReplicas)
+			delete(s.Annotations, replicasAnnotation)
+			_, err = clientset.AppsV1().StatefulSets(s.Namespace).Update(ctx, &s, metav1.UpdateOptions{})
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %v", s.Name, err), resultError)
+			} else {
+				upscaledStatefulsets++
+			}
+		} else {
+			log.Infof("Statefulset %s already scaled up", s.Name)
+		}
 	}
-
-	updater := &StatefulSetUpdater{clientset: clientset}
-	return upscaleResource(ctx, resources, updater)
+	return upscaledStatefulsets, resultError
 }
 
 func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
-	resources := make([]Resource, len(statefulsets.Items))
-	for i := range statefulsets.Items {
-		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
+	var resultError error
+	downscaledStatefulsets := 0
+	for _, s := range statefulsets.Items {
+		_, downscaled := s.Annotations[replicasAnnotation]
+		if !downscaled || *s.Spec.Replicas > 0 {
+			log.Infof("Scaling down statefulset %s from %d replicas", s.Name, s.Status.Replicas)
+			if !downscaled {
+				s.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *s.Spec.Replicas)
+			}
+			*s.Spec.Replicas = 0
+			_, err := clientset.AppsV1().StatefulSets(s.Namespace).Update(ctx, &s, metav1.UpdateOptions{})
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %v", s.Name, err), resultError)
+			} else {
+				downscaledStatefulsets++
+			}
+		} else {
+			log.Infof("Statefulset %s already downscaled", s.Name)
+		}
 	}
-
-	updater := &StatefulSetUpdater{clientset: clientset}
-	return downscaleResource(ctx, resources, updater)
-}
-
-func RestartStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
-	resources := make([]Resource, len(statefulsets.Items))
-	for i := range statefulsets.Items {
-		resources[i] = &StatefulSetResource{&statefulsets.Items[i]}
-	}
-
-	updater := &StatefulSetUpdater{clientset: clientset}
-	return restartResource(ctx, resources, updater)
+	return downscaledStatefulsets, resultError
 }
 
 func GetStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.StatefulSetList, error) {

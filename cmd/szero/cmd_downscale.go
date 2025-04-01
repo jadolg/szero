@@ -10,7 +10,7 @@ import (
 
 var downCmd = &cobra.Command{
 	Use:     "down",
-	Short:   "Downscale all deployments/statefulsets in the desired namespaces",
+	Short:   "Downscale all deployments/statefulsets/daemonsets in the desired namespaces",
 	Example: "szero down -n default -n klum",
 	Aliases: []string{"downscale"},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -25,7 +25,6 @@ var downCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-
 			log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
 			downscaledDeployments, err := pkg.DownscaleDeployments(ctx, clientset, deployments)
 			if err != nil {
@@ -37,7 +36,6 @@ var downCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-
 			log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
 			downscaledStatefulsets, err := pkg.DownscaleStatefulSets(ctx, clientset, statefulsets)
 			if err != nil {
@@ -45,6 +43,16 @@ var downCmd = &cobra.Command{
 			}
 			log.Infof("Downscaled %d statefulsets", downscaledStatefulsets)
 
+			daemonsets, err := pkg.GetDaemonsets(ctx, clientset, namespace)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Found %d daemonsets in namespace %s", len(daemonsets.Items), namespace)
+			downscaleDaemonsets, err := pkg.DownscaleDaemonsets(ctx, clientset, daemonsets)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Infof("Downscaled %d daemonsets", downscaleDaemonsets)
 		}
 	},
 }

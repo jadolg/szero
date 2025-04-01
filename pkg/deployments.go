@@ -2,70 +2,64 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"strconv"
 )
 
-// DeploymentResource adapts Deployment to Resource interface
-type DeploymentResource struct {
-	*v1.Deployment
-}
-
-func (d *DeploymentResource) GetReplicas() *int32  { return d.Spec.Replicas }
-func (d *DeploymentResource) SetReplicas(r *int32) { d.Spec.Replicas = r }
-
-func (d *DeploymentResource) GetTemplateAnnotations() map[string]string {
-	return d.Spec.Template.Annotations
-}
-
-func (d *DeploymentResource) SetTemplateAnnotations(annotations map[string]string) {
-	d.Spec.Template.Annotations = annotations
-}
-
-// DeploymentUpdater implements ResourceUpdater for Deployments
-type DeploymentUpdater struct {
-	clientset kubernetes.Interface
-}
-
-func (u *DeploymentUpdater) Update(ctx context.Context, namespace string, r Resource) error {
-	d, ok := r.(*DeploymentResource)
-	if !ok {
-		return fmt.Errorf("invalid resource type")
-	}
-	_, err := u.clientset.AppsV1().Deployments(namespace).Update(ctx, d.Deployment, metav1.UpdateOptions{})
-	return err
-}
-
 func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	resources := make([]Resource, len(deployments.Items))
-	for i := range deployments.Items {
-		resources[i] = &DeploymentResource{&deployments.Items[i]}
+	var resultError error
+	upscaledDeployments := 0
+	for _, d := range deployments.Items {
+		replicas, downscaled := d.Annotations[replicasAnnotation]
+		if downscaled {
+			intReplicas, err := strconv.ParseInt(replicas, 10, 32)
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error converting replicas to int: %w", err), resultError)
+				continue
+			}
+			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
+			*d.Spec.Replicas = int32(intReplicas)
+			delete(d.Annotations, replicasAnnotation)
+			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err), resultError)
+			} else {
+				upscaledDeployments++
+			}
+		} else {
+			log.Infof("Deployment %s already scaled up", d.Name)
+		}
 	}
-
-	updater := &DeploymentUpdater{clientset: clientset}
-	return upscaleResource(ctx, resources, updater)
+	return upscaledDeployments, resultError
 }
 
 func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	resources := make([]Resource, len(deployments.Items))
-	for i := range deployments.Items {
-		resources[i] = &DeploymentResource{&deployments.Items[i]}
+	var resultError error
+	downscaledDeployments := 0
+	for _, d := range deployments.Items {
+		_, downscaled := d.Annotations[replicasAnnotation]
+		if !downscaled || *d.Spec.Replicas > 0 {
+			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
+			if !downscaled {
+				d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
+			}
+			*d.Spec.Replicas = 0
+			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
+			if err != nil {
+				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err), resultError)
+			} else {
+				downscaledDeployments++
+			}
+		} else {
+			log.Infof("Deployment %s already downscaled", d.Name)
+		}
 	}
-
-	updater := &DeploymentUpdater{clientset: clientset}
-	return downscaleResource(ctx, resources, updater)
-}
-
-func RestartDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
-	resources := make([]Resource, len(deployments.Items))
-	for i := range deployments.Items {
-		resources[i] = &DeploymentResource{&deployments.Items[i]}
-	}
-
-	updater := &DeploymentUpdater{clientset: clientset}
-	return restartResource(ctx, resources, updater)
+	return downscaledDeployments, resultError
 }
 
 func GetDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
