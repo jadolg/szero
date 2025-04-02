@@ -12,7 +12,7 @@ func GetDefaultKubernetesContextAndNamespace(kubeconfig string) (string, string)
 		return "", "default"
 	}
 	namespace := "default"
-	if config.Contexts[config.CurrentContext].Namespace != "" {
+	if _, found := config.Contexts[config.CurrentContext]; found && config.Contexts[config.CurrentContext].Namespace != "" {
 		namespace = config.Contexts[config.CurrentContext].Namespace
 	}
 	return config.CurrentContext, namespace
