@@ -13,6 +13,9 @@ var downCmd = &cobra.Command{
 	Short:   "Downscale all deployments/statefulsets/daemonsets in the desired namespaces",
 	Example: "szero down -n default -n klum",
 	Aliases: []string{"downscale"},
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {

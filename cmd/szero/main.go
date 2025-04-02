@@ -56,7 +56,7 @@ func init() {
 		ctx := context.Background()
 		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
-			log.Fatal(err)
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
 		return pkg.GetNamespaces(ctx, clientset), cobra.ShellCompDirectiveNoFileComp
 	})
@@ -66,7 +66,7 @@ func init() {
 	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		contexts, err := pkg.GetKubernetesContexts(kubeconfig)
 		if err != nil {
-			log.Fatal(err)
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
 		return contexts, cobra.ShellCompDirectiveNoFileComp
 	})

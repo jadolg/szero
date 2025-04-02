@@ -12,6 +12,9 @@ var upCmd = &cobra.Command{
 	Short:   "Upscale all deployments/statefulsets/daemonsets in the desired namespaces to their original size",
 	Example: "szero up -n default -n klum",
 	Aliases: []string{"upscale"},
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
