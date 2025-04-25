@@ -10,10 +10,22 @@ everything down and bring it back in a namespace.
 
 ### Install
 
+##### Homebrew
+
 ```bash
 brew tap jadolg/homebrew-tap
 brew install szero
 ```
+
+#### Go
+
+```bash
+go install github.com/jadolg/szero/cmd/szero@latest
+```
+
+#### Releases
+
+Or just download the desired one from [releases](https://github.com/jadolg/szero/releases/) and place it within your `$PATH`.
 
 ### Usage
 
