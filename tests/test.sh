@@ -18,14 +18,14 @@ assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'"
 assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "2"
 assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "1"
 
-./szero down
+./szero down --wait
 
 assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'" "0"
 assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "0"
 assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "0"
 assert_eventually "kubectl get pods --no-headers | wc -l" "0"
 
-./szero up
+./szero up --wait
 
 assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'" "3"
 assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "2"

@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"time"
 )
 
 func GetDaemonsets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DaemonSetList, error) {
@@ -59,4 +60,40 @@ func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daem
 		}
 	}
 	return upscaledCount, resultError
+}
+
+func IsDaemonSetReady(ds *v1.DaemonSet, downscaled bool) bool {
+	if downscaled {
+		return ds.Status.NumberReady == 0 && ds.Status.NumberMisscheduled == 0
+	}
+	return ds.Status.NumberReady == ds.Status.DesiredNumberScheduled
+}
+
+func WaitForDaemonSets(ctx context.Context, clientset kubernetes.Interface, daemonsets *v1.DaemonSetList, timeout time.Duration, downscaled bool) error {
+	ticker := time.NewTicker(1 * time.Second)
+	timeoutAfter := time.After(timeout)
+
+	for {
+		select {
+		case <-timeoutAfter:
+			return fmt.Errorf("timeout waiting for DaemonSets to reconcile")
+		case <-ticker.C:
+			done := true
+			for _, d := range daemonsets.Items {
+				ds, err := clientset.AppsV1().DaemonSets(d.Namespace).Get(ctx, d.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("error getting DaemonSet %s: %w", d.Name, err)
+				}
+				if IsDaemonSetReady(ds, downscaled) {
+					continue
+				} else {
+					done = false
+					break
+				}
+			}
+			if done {
+				return nil
+			}
+		}
+	}
 }

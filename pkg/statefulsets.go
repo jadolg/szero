@@ -9,11 +9,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"strconv"
+	"time"
 )
 
 func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
 	var resultError error
-	upscaledStatefulsets := 0
+	upscaledCount := 0
 	for _, s := range statefulsets.Items {
 		replicas, downscaled := s.Annotations[replicasAnnotation]
 		if downscaled {
@@ -29,18 +30,18 @@ func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %v", s.Name, err), resultError)
 			} else {
-				upscaledStatefulsets++
+				upscaledCount++
 			}
 		} else {
 			log.Infof("Statefulset %s already scaled up", s.Name)
 		}
 	}
-	return upscaledStatefulsets, resultError
+	return upscaledCount, resultError
 }
 
 func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
 	var resultError error
-	downscaledStatefulsets := 0
+	downscaledCount := 0
 	for _, s := range statefulsets.Items {
 		_, downscaled := s.Annotations[replicasAnnotation]
 		if !downscaled || *s.Spec.Replicas > 0 {
@@ -53,13 +54,13 @@ func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, 
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %v", s.Name, err), resultError)
 			} else {
-				downscaledStatefulsets++
+				downscaledCount++
 			}
 		} else {
 			log.Infof("Statefulset %s already downscaled", s.Name)
 		}
 	}
-	return downscaledStatefulsets, resultError
+	return downscaledCount, resultError
 }
 
 func GetStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.StatefulSetList, error) {
@@ -68,4 +69,40 @@ func GetStatefulSets(ctx context.Context, clientset kubernetes.Interface, namesp
 		return nil, fmt.Errorf("error getting statefulsets: %w", err)
 	}
 	return statefulsets, err
+}
+
+func IsStatefulSetReady(ss *v1.StatefulSet, downscaled bool) bool {
+	if downscaled {
+		return ss.Status.Replicas == 0 && ss.Status.ReadyReplicas == 0
+	}
+	return ss.Status.AvailableReplicas == *ss.Spec.Replicas
+}
+
+func WaitForStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, timeout time.Duration, downscaled bool) error {
+	ticker := time.NewTicker(1 * time.Second)
+	timeoutAfter := time.After(timeout)
+
+	for {
+		select {
+		case <-timeoutAfter:
+			return fmt.Errorf("timeout waiting for statefulsets to reconcile")
+		case <-ticker.C:
+			done := true
+			for _, d := range statefulsets.Items {
+				ss, err := clientset.AppsV1().StatefulSets(d.Namespace).Get(ctx, d.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("error getting statefulset %s: %w", d.Name, err)
+				}
+				if IsStatefulSetReady(ss, downscaled) {
+					continue
+				} else {
+					done = false
+					break
+				}
+			}
+			if done {
+				return nil
+			}
+		}
+	}
 }

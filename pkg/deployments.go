@@ -9,11 +9,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"strconv"
+	"time"
 )
 
 func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	var resultError error
-	upscaledDeployments := 0
+	upscaledCount := 0
 	for _, d := range deployments.Items {
 		replicas, downscaled := d.Annotations[replicasAnnotation]
 		if downscaled {
@@ -29,18 +30,18 @@ func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err), resultError)
 			} else {
-				upscaledDeployments++
+				upscaledCount++
 			}
 		} else {
 			log.Infof("Deployment %s already scaled up", d.Name)
 		}
 	}
-	return upscaledDeployments, resultError
+	return upscaledCount, resultError
 }
 
 func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
 	var resultError error
-	downscaledDeployments := 0
+	downscaledCount := 0
 	for _, d := range deployments.Items {
 		_, downscaled := d.Annotations[replicasAnnotation]
 		if !downscaled || *d.Spec.Replicas > 0 {
@@ -53,13 +54,13 @@ func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 			if err != nil {
 				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err), resultError)
 			} else {
-				downscaledDeployments++
+				downscaledCount++
 			}
 		} else {
 			log.Infof("Deployment %s already downscaled", d.Name)
 		}
 	}
-	return downscaledDeployments, resultError
+	return downscaledCount, resultError
 }
 
 func GetDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {
@@ -68,4 +69,40 @@ func GetDeployments(ctx context.Context, clientset kubernetes.Interface, namespa
 		return nil, fmt.Errorf("error getting deployments: %w", err)
 	}
 	return deployments, err
+}
+
+func IsDeploymentReady(ds *v1.Deployment, downscaled bool) bool {
+	if downscaled {
+		return ds.Status.Replicas == 0 && ds.Status.ReadyReplicas == 0
+	}
+	return ds.Status.AvailableReplicas == *ds.Spec.Replicas
+}
+
+func WaitForDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, timeout time.Duration, downscaled bool) error {
+	ticker := time.NewTicker(1 * time.Second)
+	timeoutAfter := time.After(timeout)
+
+	for {
+		select {
+		case <-timeoutAfter:
+			return fmt.Errorf("timeout waiting for deployments to reconcile")
+		case <-ticker.C:
+			done := true
+			for _, d := range deployments.Items {
+				dp, err := clientset.AppsV1().Deployments(d.Namespace).Get(ctx, d.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("error getting deployment %s: %w", d.Name, err)
+				}
+				if IsDeploymentReady(dp, downscaled) {
+					continue
+				} else {
+					done = false
+					break
+				}
+			}
+			if done {
+				return nil
+			}
+		}
+	}
 }
