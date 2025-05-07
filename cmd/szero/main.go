@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"time"
+
 	"github.com/jadolg/szero/pkg"
 	"os"
 	"path/filepath"
@@ -24,6 +26,9 @@ var (
 	skipDaemonsets   bool
 	skipStatefulsets bool
 	skipDeployments  bool
+
+	wait    bool
+	timeout time.Duration
 
 	rootCmd = &cobra.Command{
 		Use:   "szero",
@@ -51,6 +56,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&skipDaemonsets, "skip-daemonsets", "d", false, "Skip daemonsets")
 	rootCmd.PersistentFlags().BoolVarP(&skipStatefulsets, "skip-statefulsets", "s", false, "Skip statefulsets")
 	rootCmd.PersistentFlags().BoolVarP(&skipDeployments, "skip-deployments", "p", false, "Skip deployments")
+
+	rootCmd.PersistentFlags().BoolVarP(&wait, "wait", "w", false, "Wait for all resources to reconcile into the desired state")
+	rootCmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", 5*time.Minute, "Timeout for waiting for resources to reconcile into the desired state")
 
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	err := rootCmd.RegisterFlagCompletionFunc("namespace", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

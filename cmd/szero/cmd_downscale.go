@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"github.com/jadolg/szero/pkg"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -68,6 +67,10 @@ var downCmd = &cobra.Command{
 				}
 				log.Infof("Downscaled %d daemonsets", downscaleDaemonsets)
 			}
+		}
+
+		if wait {
+			waitForResourcesOrFatal(ctx, clientset, true)
 		}
 	},
 }

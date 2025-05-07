@@ -68,6 +68,10 @@ var upCmd = &cobra.Command{
 				log.Infof("Upscaled %d daemonsets", upscaledDaemonsets)
 			}
 		}
+
+		if wait {
+			waitForResourcesOrFatal(ctx, clientset, false)
+		}
 	},
 }
 
