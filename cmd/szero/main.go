@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
@@ -58,7 +59,8 @@ func init() {
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
-		return pkg.GetNamespaces(ctx, clientset), cobra.ShellCompDirectiveNoFileComp
+		_, unusedNamespaces := lo.Difference(namespaces, pkg.GetNamespaces(ctx, clientset))
+		return unusedNamespaces, cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		log.Fatal(err)
