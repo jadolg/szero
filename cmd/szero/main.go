@@ -7,6 +7,7 @@ import (
 	"github.com/jadolg/szero/pkg"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
@@ -31,11 +32,18 @@ var (
 	timeout time.Duration
 
 	rootCmd = &cobra.Command{
-		Use:   "szero",
+		Use:   getApplicationName(),
 		Short: "Temporarily scale down/up all deployments, statefulsets, and daemonsets in a namespace",
 		Long:  "Downscale all deployments, statefulsets, and daemonsets in a namespace to 0 replicas and back to their previous state. Useful when you need to tear everything down and bring it back in a namespace.",
 	}
 )
+
+func getApplicationName() string {
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		return "kubectl-szero"
+	}
+	return "szero"
+}
 
 func getDefaultKubeconfigPath() string {
 	if os.Getenv("KUBECONFIG") != "" {
