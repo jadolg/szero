@@ -27,3 +27,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_TAP_GITHUB_SECRET: ${{ secrets.GORELEASER_TAP_GITHUB_SECRET }}
+      - name: Update new version in krew-index
+        uses: rajatjindal/krew-release-bot@v0.0.47
