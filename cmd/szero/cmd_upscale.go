@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/charmbracelet/log"
 	"github.com/jadolg/szero/pkg"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

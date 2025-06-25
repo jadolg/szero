@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/fang"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/samber/lo"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
 )
@@ -93,9 +95,30 @@ func init() {
 	}
 }
 
+func setupLogs() {
+	log.SetReportTimestamp(false)
+	styles := log.DefaultStyles()
+	styles.Levels[log.ErrorLevel] = lipgloss.NewStyle().
+		SetString("😿").
+		Padding(0, 1, 0, 1).
+		Background(lipgloss.Color("204")).
+		Foreground(lipgloss.Color("0"))
+	styles.Levels[log.InfoLevel] = lipgloss.NewStyle().
+		SetString("🐱").
+		Padding(0, 1, 0, 1).
+		Background(lipgloss.Color("86")).
+		Foreground(lipgloss.Color("0"))
+	styles.Levels[log.FatalLevel] = lipgloss.NewStyle().
+		SetString("🙀").
+		Padding(0, 1, 0, 1).
+		Background(lipgloss.Color("204")).
+		Foreground(lipgloss.Color("0"))
+	log.SetStyles(styles)
+}
+
 func main() {
-	err := rootCmd.Execute()
-	if err != nil {
-		log.Fatal(err)
+	setupLogs()
+	if err := fang.Execute(context.Background(), rootCmd); err != nil {
+		os.Exit(1)
 	}
 }
