@@ -35,7 +35,8 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-brews:
+
+homebrew_casks:
   -
     name: szero
     homepage: "https://github.com/jadolg/szero"
@@ -49,13 +50,20 @@ brews:
       name: homebrew-tap
       pull_request:
         enabled: false
-    directory: Formula
-    install: |
-      bin.install "szero"
-      bash_completion.install "completions/szero.bash" => "szero"
-      zsh_completion.install "completions/szero.zsh" => "_szero"
-      fish_completion.install "completions/szero.fish"
-      man1.install "man/szero.1.gz"
+    conflicts:
+      - formula: szero
+    completions:
+      bash: completions/szero.bash
+      zsh: completions/szero.zsh
+      fish: completions/szero.fish
+    manpages:
+      - man/szero.1.gz
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/szero"]
+          end
 
 nfpms:
   -
