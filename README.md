@@ -12,6 +12,8 @@ everything down and bring it back in a namespace.
 
 #### Homebrew
 
+> notice: szero formula will no longer be available. Use the cask instead.
+
 ```bash
 brew tap jadolg/homebrew-tap
 brew install --cask szero
