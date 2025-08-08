@@ -50,7 +50,6 @@ homebrew_casks:
       name: homebrew-tap
       pull_request:
         enabled: false
-    directory: Formula
     conflicts:
       - formula: szero
     completions:
