@@ -35,7 +35,8 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-brews:
+
+homebrew_casks:
   -
     name: szero
     homepage: "https://github.com/jadolg/szero"
@@ -50,12 +51,12 @@ brews:
       pull_request:
         enabled: false
     directory: Formula
-    install: |
-      bin.install "szero"
-      bash_completion.install "completions/szero.bash" => "szero"
-      zsh_completion.install "completions/szero.zsh" => "_szero"
-      fish_completion.install "completions/szero.fish"
-      man1.install "man/szero.1.gz"
+    completions:
+      bash: completions/szero.bash
+      zsh: completions/szero.zsh
+      fish: completions/szero.fish
+    manpages:
+      - man/szero.1.gz
 
 nfpms:
   -
