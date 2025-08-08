@@ -51,6 +51,8 @@ homebrew_casks:
       pull_request:
         enabled: false
     directory: Formula
+    conflicts:
+      - formula: szero
     completions:
       bash: completions/szero.bash
       zsh: completions/szero.zsh
