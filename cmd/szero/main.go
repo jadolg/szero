@@ -118,7 +118,7 @@ func setupLogs() {
 
 func main() {
 	setupLogs()
-	if err := fang.Execute(context.Background(), rootCmd); err != nil {
+	if err := fang.Execute(context.Background(), rootCmd, fang.WithoutVersion(), fang.WithoutManpage()); err != nil {
 		os.Exit(1)
 	}
 }
