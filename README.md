@@ -10,11 +10,19 @@ everything down and bring it back in a namespace.
 
 ### Install
 
-##### Homebrew
+#### Homebrew
 
 ```bash
 brew tap jadolg/homebrew-tap
 brew install --cask szero
+```
+#### Debian/Ubuntu
+
+```bash
+wget -O - https://deb.akiel.dev/gpg.pub.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/akiel.gpg > /dev/null
+sudo apt-add-repository deb "https://deb.akiel.dev/ all main"
+sudo apt update
+sudo apt install szero
 ```
 
 #### Go
