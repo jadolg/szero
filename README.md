@@ -14,7 +14,7 @@ everything down and bring it back in a namespace.
 
 ```bash
 brew tap jadolg/homebrew-tap
-brew install szero
+brew install --cask szero
 ```
 
 #### Go
