@@ -2,7 +2,7 @@ package pkg
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/charmbracelet/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
