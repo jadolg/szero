@@ -27,6 +27,14 @@ sudo apt update
 sudo apt install szero
 ```
 
+#### Krew
+
+**note:** When installing with krew, szero will only be available under `kubectl szero`.
+
+```bash
+kubectl krew install szero
+```
+
 #### Go
 
 ```bash
