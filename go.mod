@@ -3,7 +3,7 @@ module github.com/jadolg/szero
 go 1.24.2
 
 require (
-	github.com/charmbracelet/fang v0.4.2
+	github.com/charmbracelet/fang v0.4.3
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/muesli/mango-cobra v1.3.0
