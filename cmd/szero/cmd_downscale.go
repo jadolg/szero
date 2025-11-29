@@ -34,7 +34,7 @@ var downCmd = &cobra.Command{
 				log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
 				downscaledDeployments, err := pkg.DownscaleDeployments(ctx, clientset, deployments)
 				if err != nil {
-					log.Fatal(err)
+					log.Error(err)
 				}
 				log.Infof("Downscaled %d deployments", downscaledDeployments)
 			}
