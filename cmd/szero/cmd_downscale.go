@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/charmbracelet/log"
 	"github.com/jadolg/szero/pkg"
 	"github.com/spf13/cobra"
