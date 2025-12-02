@@ -1,6 +1,8 @@
-package pkg // Resource represents either a Deployment or StatefulSet
+package pkg
+
 import (
 	"fmt"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )

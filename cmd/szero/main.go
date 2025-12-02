@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/jadolg/szero/pkg"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jadolg/szero/pkg"
 
 	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/lipgloss"
