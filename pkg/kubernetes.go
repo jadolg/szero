@@ -1,4 +1,5 @@
-package pkg // Resource represents either a Deployment or StatefulSet
+package pkg
+
 import (
 	"fmt"
 
