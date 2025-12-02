@@ -23,6 +23,7 @@ var (
 	Commit      = "none"
 	Date        = "unknown"
 	BuiltBy     = "dirty hands"
+	GoVersion   = "unknown"
 	kubeconfig  string
 	kubecontext string
 	namespaces  []string

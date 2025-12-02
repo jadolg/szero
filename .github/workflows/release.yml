@@ -18,6 +18,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - name: Export Go Version
+        id: goversion
+        run: echo "GOVERSION=$(go version | awk '{print $3}')" >> $GITHUB_ENV
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
