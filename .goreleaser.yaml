@@ -1,4 +1,4 @@
-version: 2 
+version: 2
 
 before:
   hooks:
@@ -15,7 +15,7 @@ builds:
       - windows
       - darwin
     ldflags:
-      - '-s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}} -X main.BuiltBy=goreleaser'
+      - '-s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}} -X main.BuiltBy=goreleaser -X main.GoVersion={{.Env.GOVERSION}}'
     main: ./cmd/szero
 
 archives:
@@ -50,8 +50,6 @@ homebrew_casks:
       name: homebrew-tap
       pull_request:
         enabled: false
-    conflicts:
-      - formula: szero
     completions:
       bash: completions/szero.bash
       zsh: completions/szero.zsh
@@ -69,8 +67,7 @@ homebrew_casks:
           end
 
 nfpms:
-  -
-    id: szero
+  - id: szero
     package_name: szero
     homepage: https://github.com/jadolg/szero
     maintainer: Jorge Alberto Díaz Orozco (Akiel) <diazorozcoj@gmail.com>

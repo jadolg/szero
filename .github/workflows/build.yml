@@ -32,3 +32,14 @@ jobs:
 
       - name: Integration Test
         run: ./tests/test.sh
+
+      - name: Export Go Version
+        id: goversion
+        run: echo "GOVERSION=$(go version | awk '{print $3}')" >> $GITHUB_ENV
+
+      - name: Make GoReleaser snapshot
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --snapshot --clean
