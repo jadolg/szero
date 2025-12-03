@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 )
 
 func GetDaemonsets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DaemonSetList, error) {
@@ -24,20 +25,12 @@ func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, da
 	downscaledCount := 0
 	var resultError error
 	for _, d := range daemonsets.Items {
-		if _, exists := d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation]; !exists {
-			log.Infof("Scaling down daemonset %s", d.Name)
-			if d.Spec.Template.Spec.NodeSelector == nil {
-				d.Spec.Template.Spec.NodeSelector = make(map[string]string)
-			}
-			d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation] = "true"
-			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
-			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %v", d.GetName(), err), resultError)
-			} else {
-				downscaledCount++
-			}
-		} else {
-			log.Infof("Daemonset %s already downscaled", d.Name)
+		downscaled, err := downscaleDaemonset(ctx, clientset, d.Namespace, d.Name)
+		if err != nil {
+			resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %v", d.GetName(), err), resultError)
+		}
+		if downscaled {
+			downscaledCount++
 		}
 	}
 	return downscaledCount, resultError
@@ -47,20 +40,65 @@ func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daem
 	upscaledCount := 0
 	var resultError error
 	for _, d := range daemonsets.Items {
-		if _, exists := d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation]; exists {
-			log.Infof("Scaling up daemonset %s", d.Name)
-			delete(d.Spec.Template.Spec.NodeSelector, noscheduleAnnotation)
-			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
-			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %v", d.GetName(), err), resultError)
-			} else {
-				upscaledCount++
-			}
-		} else {
-			log.Infof("Daemonset %s is not marked as downscaled", d.Name)
+		upscaled, err := upscaleDaemonset(ctx, clientset, d.Namespace, d.Name)
+		if err != nil {
+			resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %v", d.GetName(), err), resultError)
+		}
+		if upscaled {
+			upscaledCount++
 		}
 	}
 	return upscaledCount, resultError
+}
+
+func downscaleDaemonset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+	w := false
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		d, err := clientset.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if _, exists := d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation]; !exists {
+			log.Infof("Scaling down daemonset %s", d.Name)
+			if d.Spec.Template.Spec.NodeSelector == nil {
+				d.Spec.Template.Spec.NodeSelector = make(map[string]string)
+			}
+			d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation] = "true"
+			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, d, metav1.UpdateOptions{})
+			if err == nil {
+				w = true
+			}
+			return err
+		} else {
+			log.Infof("Daemonset %s already downscaled", d.Name)
+		}
+		return nil
+	})
+	return w, err
+}
+
+func upscaleDaemonset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+	w := false
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		d, err := clientset.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if _, exists := d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation]; exists {
+			log.Infof("Scaling up daemonset %s", d.Name)
+			delete(d.Spec.Template.Spec.NodeSelector, noscheduleAnnotation)
+			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, d, metav1.UpdateOptions{})
+			if err == nil {
+				w = true
+			}
+			return err
+		} else {
+			log.Infof("Daemonset %s is not marked as downscaled", d.Name)
+		}
+
+		return nil
+	})
+	return w, err
 }
 
 func IsDaemonSetReady(ds *v1.DaemonSet, downscaled bool) bool {
