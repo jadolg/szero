@@ -29,7 +29,7 @@ func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 			delete(s.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().StatefulSets(s.Namespace).Update(ctx, &s, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %v", s.Name, err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %w", s.Name, err), resultError)
 			} else {
 				upscaledCount++
 			}
@@ -53,7 +53,7 @@ func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, 
 			*s.Spec.Replicas = 0
 			_, err := clientset.AppsV1().StatefulSets(s.Namespace).Update(ctx, &s, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %v", s.Name, err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %w", s.Name, err), resultError)
 			} else {
 				downscaledCount++
 			}

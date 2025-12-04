@@ -29,7 +29,7 @@ func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 			delete(d.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %v", d.Name, err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %w", d.Name, err), resultError)
 			} else {
 				upscaledCount++
 			}
@@ -53,7 +53,7 @@ func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 			*d.Spec.Replicas = 0
 			_, err := clientset.AppsV1().Deployments(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %v", d.Name, err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %w", d.Name, err), resultError)
 			} else {
 				downscaledCount++
 			}

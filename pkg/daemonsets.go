@@ -32,7 +32,7 @@ func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, da
 			d.Spec.Template.Spec.NodeSelector[noscheduleAnnotation] = "true"
 			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %v", d.GetName(), err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %w", d.GetName(), err), resultError)
 			} else {
 				downscaledCount++
 			}
@@ -52,7 +52,7 @@ func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daem
 			delete(d.Spec.Template.Spec.NodeSelector, noscheduleAnnotation)
 			_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(ctx, &d, metav1.UpdateOptions{})
 			if err != nil {
-				resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %v", d.GetName(), err), resultError)
+				resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %w", d.GetName(), err), resultError)
 			} else {
 				upscaledCount++
 			}
