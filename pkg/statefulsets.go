@@ -20,7 +20,7 @@ func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 	for _, s := range statefulsets.Items {
 		upscaled, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name)
 		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %v", s.Name, err), resultError)
+			resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %w", s.Name, err), resultError)
 		}
 		if upscaled {
 			upscaledCount++
@@ -35,7 +35,7 @@ func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, 
 	for _, s := range statefulsets.Items {
 		downscaled, err := downscaleStatefulset(ctx, clientset, s.Namespace, s.Name)
 		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %v", s.Name, err), resultError)
+			resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %w", s.Name, err), resultError)
 		}
 		if downscaled {
 			downscaledCount++
@@ -66,9 +66,9 @@ func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, nam
 				w = true
 			}
 			return err
-		} else {
-			log.Infof("Statefulset %s already scaled up", s.Name)
 		}
+
+		log.Infof("Statefulset %s already scaled up", s.Name)
 
 		return nil
 	})

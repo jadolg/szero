@@ -27,7 +27,7 @@ func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, da
 	for _, d := range daemonsets.Items {
 		downscaled, err := downscaleDaemonset(ctx, clientset, d.Namespace, d.Name)
 		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %v", d.GetName(), err), resultError)
+			resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %w", d.GetName(), err), resultError)
 		}
 		if downscaled {
 			downscaledCount++
@@ -42,7 +42,7 @@ func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daem
 	for _, d := range daemonsets.Items {
 		upscaled, err := upscaleDaemonset(ctx, clientset, d.Namespace, d.Name)
 		if err != nil {
-			resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %v", d.GetName(), err), resultError)
+			resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %w", d.GetName(), err), resultError)
 		}
 		if upscaled {
 			upscaledCount++
@@ -69,9 +69,9 @@ func downscaleDaemonset(ctx context.Context, clientset kubernetes.Interface, nam
 				w = true
 			}
 			return err
-		} else {
-			log.Infof("Daemonset %s already downscaled", d.Name)
 		}
+
+		log.Infof("Daemonset %s already downscaled", d.Name)
 		return nil
 	})
 	return w, err
@@ -92,9 +92,9 @@ func upscaleDaemonset(ctx context.Context, clientset kubernetes.Interface, names
 				w = true
 			}
 			return err
-		} else {
-			log.Infof("Daemonset %s is not marked as downscaled", d.Name)
 		}
+
+		log.Infof("Daemonset %s is not marked as downscaled", d.Name)
 
 		return nil
 	})
