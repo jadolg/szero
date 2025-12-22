@@ -11,7 +11,6 @@ import (
 	"github.com/jadolg/szero/pkg"
 
 	"github.com/charmbracelet/fang"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -101,23 +100,6 @@ func init() {
 
 func setupLogs() {
 	log.SetReportTimestamp(false)
-	styles := log.DefaultStyles()
-	styles.Levels[log.ErrorLevel] = lipgloss.NewStyle().
-		SetString("😿").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.InfoLevel] = lipgloss.NewStyle().
-		SetString("🐱").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("86")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.FatalLevel] = lipgloss.NewStyle().
-		SetString("🙀").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	log.SetStyles(styles)
 }
 
 func main() {
