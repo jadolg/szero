@@ -18,12 +18,28 @@ assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'"
 assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "2"
 assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "1"
 
+# Test dry-run mode (should not change anything)
+./szero down --dry-run
+
+assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'" "3"
+assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "2"
+assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "1"
+assert "kubectl get pods --no-headers | wc -l" "6"
+
 ./szero down --wait
 
 assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'" "0"
 assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "0"
 assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "0"
 assert_eventually "kubectl get pods --no-headers | wc -l" "0"
+
+# Test dry-run mode for upscale (should not change anything)
+./szero up --dry-run
+
+assert "kubectl get deployment testdeployment001 -o jsonpath='{.spec.replicas}'" "0"
+assert "kubectl get sts teststatefulset001 -o jsonpath='{.spec.replicas}'" "0"
+assert "kubectl get ds testdaemonset001 -o jsonpath='{.status.desiredNumberScheduled}'" "0"
+assert "kubectl get pods --no-headers | wc -l" "0"
 
 ./szero up --wait
 
