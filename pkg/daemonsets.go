@@ -30,10 +30,10 @@ func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, da
 			resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %w", d.GetName(), err), resultError)
 		}
 		if downscaled {
-			log.Infof("Scaling down daemonset %s", d.Name)
+			log.Infof("Scaling down daemonset %q", d.Name)
 			downscaledCount++
-		} else if err == nil {
-			log.Infof("Daemonset %s already downscaled", d.Name)
+		} else {
+			log.Warnf("Daemonset %q already downscaled", d.Name)
 		}
 	}
 	return downscaledCount, resultError
@@ -48,10 +48,10 @@ func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daem
 			resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %w", d.GetName(), err), resultError)
 		}
 		if upscaled {
-			log.Infof("Scaling up daemonset %s", d.Name)
+			log.Infof("Scaling up daemonset %q", d.Name)
 			upscaledCount++
-		} else if err == nil {
-			log.Infof("Daemonset %s is not marked as downscaled", d.Name)
+		} else {
+			log.Warnf("Daemonset %q is already scaled up", d.Name)
 		}
 	}
 	return upscaledCount, resultError

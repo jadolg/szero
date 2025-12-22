@@ -23,10 +23,10 @@ func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, dep
 			resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %w", d.Name, err), resultError)
 		}
 		if upscaled {
-			log.Infof("Scaling up deployment %s to %d replicas", d.Name, replicas)
+			log.Infof("Scaling up deployment %q to %s replicas", d.Name, N(replicas))
 			upscaledCount++
-		} else if err == nil {
-			log.Infof("Deployment %s already scaled up", d.Name)
+		} else {
+			log.Warnf("Deployment %q already scaled up", d.Name)
 		}
 	}
 	return upscaledCount, resultError
@@ -41,10 +41,10 @@ func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, d
 			resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %w", d.Name, err), resultError)
 		}
 		if downscaled {
-			log.Infof("Scaling down deployment %s from %d replicas", d.Name, originalReplicas)
+			log.Infof("Scaling down deployment %q from %s replicas", d.Name, N(originalReplicas))
 			downscaledCount++
-		} else if err == nil {
-			log.Infof("Deployment %s already downscaled", d.Name)
+		} else {
+			log.Warnf("Deployment %q already downscaled", d.Name)
 		}
 	}
 	return downscaledCount, resultError

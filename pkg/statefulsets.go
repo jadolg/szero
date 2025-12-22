@@ -18,12 +18,15 @@ func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 	var resultError error
 	upscaledCount := 0
 	for _, s := range statefulsets.Items {
-		upscaled, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
+		upscaled, replicas, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %w", s.Name, err), resultError)
 		}
 		if upscaled {
+			log.Infof("Scaling up statefulset %q to %s replicas", s.Name, N(replicas))
 			upscaledCount++
+		} else {
+			log.Warnf("Statefulset %q already scaled up", s.Name)
 		}
 	}
 	return upscaledCount, resultError
@@ -38,16 +41,17 @@ func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, 
 			resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %w", s.Name, err), resultError)
 		}
 		if downscaled {
-			log.Infof("Scaling down statefulset %s from %d replicas", s.Name, originalReplicas)
+			log.Infof("Scaling down statefulset %q from %s replicas", s.Name, N(originalReplicas))
 			downscaledCount++
-		} else if err == nil {
-			log.Infof("Statefulset %s already downscaled", s.Name)
+		} else {
+			log.Warnf("Statefulset %q already downscaled", s.Name)
 		}
 	}
 	return downscaledCount, resultError
 }
 
-func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, error) {
+func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
+	var targetReplicas int32
 	w := false
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		s, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -61,7 +65,7 @@ func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, nam
 			if err != nil {
 				return fmt.Errorf("error converting replicas to int: %w", err)
 			}
-			log.Infof("Scaling up statefulset %s to %d replicas", s.Name, intReplicas)
+			targetReplicas = int32(intReplicas)
 			if dryRun {
 				w = true
 				return nil
@@ -75,11 +79,9 @@ func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, nam
 			return err
 		}
 
-		log.Infof("Statefulset %s already scaled up", s.Name)
-
 		return nil
 	})
-	return w, err
+	return w, targetReplicas, err
 }
 
 func downscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
