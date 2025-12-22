@@ -14,7 +14,7 @@ func waitForResourcesOrFatal(ctx context.Context, clientset kubernetes.Interface
 	errors := make(chan error, 1)
 	done := make(chan bool, waitFor)
 
-	log.Infof("Waiting for all resources to reach the desired state in %d namespaces (timeout %v)", len(namespaces), timeout)
+	log.Infof("Waiting for all resources to reach the desired state in %s namespaces (timeout %v)", pkg.N(len(namespaces)), timeout)
 
 	for _, namespace := range namespaces {
 		if !skipDeployments {

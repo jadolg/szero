@@ -100,6 +100,7 @@ func init() {
 
 func setupLogs() {
 	log.SetReportTimestamp(false)
+
 }
 
 func main() {
