@@ -104,7 +104,7 @@ func TestDownscaleDeployments(t *testing.T) {
 			deployments, err := GetDeployments(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			downscaled, err := DownscaleDeployments(ctx, clientset, deployments)
+			downscaled, err := DownscaleDeployments(ctx, clientset, deployments, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedDownscaled, downscaled)
 
@@ -172,7 +172,7 @@ func TestUpscaleDeployments(t *testing.T) {
 			deployments, err := GetDeployments(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := UpscaleDeployments(ctx, clientset, deployments)
+			upscaled, err := UpscaleDeployments(ctx, clientset, deployments, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUpscaled, upscaled)
 

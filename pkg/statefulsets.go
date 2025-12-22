@@ -14,11 +14,11 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
+func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) (int, error) {
 	var resultError error
 	upscaledCount := 0
 	for _, s := range statefulsets.Items {
-		upscaled, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name)
+		upscaled, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %w", s.Name, err), resultError)
 		}
@@ -29,22 +29,25 @@ func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, st
 	return upscaledCount, resultError
 }
 
-func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList) (int, error) {
+func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) (int, error) {
 	var resultError error
 	downscaledCount := 0
 	for _, s := range statefulsets.Items {
-		downscaled, err := downscaleStatefulset(ctx, clientset, s.Namespace, s.Name)
+		downscaled, originalReplicas, err := downscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %w", s.Name, err), resultError)
 		}
 		if downscaled {
+			log.Infof("Scaling down statefulset %s from %d replicas", s.Name, originalReplicas)
 			downscaledCount++
+		} else if err == nil {
+			log.Infof("Statefulset %s already downscaled", s.Name)
 		}
 	}
 	return downscaledCount, resultError
 }
 
-func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, error) {
 	w := false
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		s, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -59,6 +62,10 @@ func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, nam
 				return fmt.Errorf("error converting replicas to int: %w", err)
 			}
 			log.Infof("Scaling up statefulset %s to %d replicas", s.Name, intReplicas)
+			if dryRun {
+				w = true
+				return nil
+			}
 			*s.Spec.Replicas = int32(intReplicas)
 			delete(s.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().StatefulSets(s.Namespace).Update(ctx, s, metav1.UpdateOptions{})
@@ -75,7 +82,8 @@ func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, nam
 	return w, err
 }
 
-func downscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+func downscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
+	var originalReplicas int32
 	w := false
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		s, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -84,7 +92,11 @@ func downscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, n
 		}
 		_, downscaled := s.Annotations[replicasAnnotation]
 		if !downscaled || *s.Spec.Replicas > 0 {
-			log.Infof("Scaling down statefulset %s from %d replicas", s.Name, s.Status.Replicas)
+			originalReplicas = *s.Spec.Replicas
+			if dryRun {
+				w = true
+				return nil
+			}
 			if !downscaled {
 				s.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *s.Spec.Replicas)
 			}
@@ -94,12 +106,10 @@ func downscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, n
 				w = true
 			}
 			return err
-		} else {
-			log.Infof("Statefulset %s already downscaled", s.Name)
 		}
 		return nil
 	})
-	return w, err
+	return w, originalReplicas, err
 }
 
 func GetStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.StatefulSetList, error) {

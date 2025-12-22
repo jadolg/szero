@@ -33,6 +33,7 @@ var (
 	skipDeployments  bool
 
 	wait    bool
+	dryRun  bool
 	timeout time.Duration
 
 	rootCmd = &cobra.Command{
@@ -70,6 +71,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&skipDeployments, "skip-deployments", "p", false, "Skip deployments")
 
 	rootCmd.PersistentFlags().BoolVarP(&wait, "wait", "w", false, "Wait for all resources to reconcile into the desired state")
+	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "r", false, "Run in dry-run mode (no changes will be made)")
 	rootCmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", 5*time.Minute, "Timeout for waiting for resources to reconcile into the desired state")
 
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true

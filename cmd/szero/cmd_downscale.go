@@ -17,6 +17,10 @@ var downCmd = &cobra.Command{
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if dryRun {
+			log.Warn("Running in dry-run mode, no changes will be made")
+		}
+
 		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
 			log.Fatal(err)
@@ -32,7 +36,7 @@ var downCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 				log.Infof("Found %d deployments in namespace %s", len(deployments.Items), namespace)
-				downscaledDeployments, err := pkg.DownscaleDeployments(ctx, clientset, deployments)
+				downscaledDeployments, err := pkg.DownscaleDeployments(ctx, clientset, deployments, dryRun)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -47,7 +51,7 @@ var downCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 				log.Infof("Found %d statefulsets in namespace %s", len(statefulsets.Items), namespace)
-				downscaledStatefulsets, err := pkg.DownscaleStatefulSets(ctx, clientset, statefulsets)
+				downscaledStatefulsets, err := pkg.DownscaleStatefulSets(ctx, clientset, statefulsets, dryRun)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -62,7 +66,7 @@ var downCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 				log.Infof("Found %d daemonsets in namespace %s", len(daemonsets.Items), namespace)
-				downscaleDaemonsets, err := pkg.DownscaleDaemonsets(ctx, clientset, daemonsets)
+				downscaleDaemonsets, err := pkg.DownscaleDaemonsets(ctx, clientset, daemonsets, dryRun)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -70,7 +74,7 @@ var downCmd = &cobra.Command{
 			}
 		}
 
-		if wait {
+		if wait && !dryRun {
 			waitForResourcesOrFatal(ctx, clientset, true)
 		}
 	},
