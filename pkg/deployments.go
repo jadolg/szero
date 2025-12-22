@@ -14,31 +14,37 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) (int, error) {
 	var resultError error
 	upscaledCount := 0
 	for _, d := range deployments.Items {
-		upscaled, err := upscaleDeployment(ctx, clientset, d.Namespace, d.Name)
+		upscaled, replicas, err := upscaleDeployment(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %w", d.Name, err), resultError)
 		}
 		if upscaled {
+			log.Infof("Scaling up deployment %s to %d replicas", d.Name, replicas)
 			upscaledCount++
+		} else if err == nil {
+			log.Infof("Deployment %s already scaled up", d.Name)
 		}
 	}
 	return upscaledCount, resultError
 }
 
-func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList) (int, error) {
+func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) (int, error) {
 	var resultError error
 	downscaledCount := 0
 	for _, d := range deployments.Items {
-		downscaled, err := downscaleDeployment(ctx, clientset, d.Namespace, d.Name)
+		downscaled, originalReplicas, err := downscaleDeployment(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %w", d.Name, err), resultError)
 		}
 		if downscaled {
+			log.Infof("Scaling down deployment %s from %d replicas", d.Name, originalReplicas)
 			downscaledCount++
+		} else if err == nil {
+			log.Infof("Deployment %s already downscaled", d.Name)
 		}
 	}
 	return downscaledCount, resultError
@@ -59,7 +65,8 @@ func IsDeploymentReady(ds *v1.Deployment, downscaled bool) bool {
 	return ds.Status.AvailableReplicas == *ds.Spec.Replicas
 }
 
-func downscaleDeployment(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+func downscaleDeployment(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
+	var originalReplicas int32
 	w := false
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		d, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -68,7 +75,11 @@ func downscaleDeployment(ctx context.Context, clientset kubernetes.Interface, na
 		}
 		_, downscaled := d.Annotations[replicasAnnotation]
 		if !downscaled || *d.Spec.Replicas > 0 {
-			log.Infof("Scaling down deployment %s from %d replicas", d.Name, d.Status.Replicas)
+			originalReplicas = *d.Spec.Replicas
+			if dryRun {
+				w = true
+				return nil
+			}
 			if !downscaled {
 				d.Annotations[replicasAnnotation] = fmt.Sprintf("%d", *d.Spec.Replicas)
 			}
@@ -78,15 +89,14 @@ func downscaleDeployment(ctx context.Context, clientset kubernetes.Interface, na
 				w = true
 			}
 			return err
-		} else {
-			log.Infof("Deployment %s already downscaled", d.Name)
 		}
 		return nil
 	})
-	return w, err
+	return w, originalReplicas, err
 }
 
-func upscaleDeployment(ctx context.Context, clientset kubernetes.Interface, namespace string, name string) (bool, error) {
+func upscaleDeployment(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
+	var targetReplicas int32
 	w := false
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		d, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -99,8 +109,12 @@ func upscaleDeployment(ctx context.Context, clientset kubernetes.Interface, name
 			if err != nil {
 				return fmt.Errorf("error converting replicas to int: %w", err)
 			}
-			log.Infof("Scaling up deployment %s to %d replicas", d.Name, intReplicas)
-			*d.Spec.Replicas = int32(intReplicas)
+			targetReplicas = int32(intReplicas)
+			if dryRun {
+				w = true
+				return nil
+			}
+			*d.Spec.Replicas = targetReplicas
 			delete(d.Annotations, replicasAnnotation)
 			_, err = clientset.AppsV1().Deployments(d.Namespace).Update(ctx, d, metav1.UpdateOptions{})
 			if err == nil {
@@ -108,11 +122,9 @@ func upscaleDeployment(ctx context.Context, clientset kubernetes.Interface, name
 			}
 			return err
 		}
-
-		log.Infof("Deployment %s already scaled up", d.Name)
 		return nil
 	})
-	return w, err
+	return w, targetReplicas, err
 }
 
 func WaitForDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, timeout time.Duration, downscaled bool) error {

@@ -11,7 +11,6 @@ import (
 	"github.com/jadolg/szero/pkg"
 
 	"github.com/charmbracelet/fang"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -33,6 +32,7 @@ var (
 	skipDeployments  bool
 
 	wait    bool
+	dryRun  bool
 	timeout time.Duration
 
 	rootCmd = &cobra.Command{
@@ -70,6 +70,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&skipDeployments, "skip-deployments", "p", false, "Skip deployments")
 
 	rootCmd.PersistentFlags().BoolVarP(&wait, "wait", "w", false, "Wait for all resources to reconcile into the desired state")
+	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "r", false, "Run in dry-run mode (no changes will be made)")
 	rootCmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", 5*time.Minute, "Timeout for waiting for resources to reconcile into the desired state")
 
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
@@ -99,23 +100,6 @@ func init() {
 
 func setupLogs() {
 	log.SetReportTimestamp(false)
-	styles := log.DefaultStyles()
-	styles.Levels[log.ErrorLevel] = lipgloss.NewStyle().
-		SetString("😿").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.InfoLevel] = lipgloss.NewStyle().
-		SetString("🐱").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("86")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.FatalLevel] = lipgloss.NewStyle().
-		SetString("🙀").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	log.SetStyles(styles)
 }
 
 func main() {

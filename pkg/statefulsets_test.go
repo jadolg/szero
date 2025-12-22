@@ -104,7 +104,7 @@ func TestDownscaleStatefulSets(t *testing.T) {
 			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			downscaled, err := DownscaleStatefulSets(ctx, clientset, statefulsets)
+			downscaled, err := DownscaleStatefulSets(ctx, clientset, statefulsets, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedDownscaled, downscaled)
 
@@ -172,7 +172,7 @@ func TestUpscaleStatefulSets(t *testing.T) {
 			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := UpscaleStatefulSets(ctx, clientset, statefulsets)
+			upscaled, err := UpscaleStatefulSets(ctx, clientset, statefulsets, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUpscaled, upscaled)
 

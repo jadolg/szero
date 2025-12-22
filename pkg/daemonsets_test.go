@@ -82,7 +82,7 @@ func TestDownscaleDaemonSets(t *testing.T) {
 			daemonsets, err := GetDaemonsets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			downscaled, err := DownscaleDaemonsets(ctx, clientset, daemonsets)
+			downscaled, err := DownscaleDaemonsets(ctx, clientset, daemonsets, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedDownscaled, downscaled)
 
@@ -148,7 +148,7 @@ func TestUpscaleDaemonSets(t *testing.T) {
 			daemonsets, err := GetDaemonsets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := UpscaleDaemonsets(ctx, clientset, daemonsets)
+			upscaled, err := UpscaleDaemonsets(ctx, clientset, daemonsets, false)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUpscaled, upscaled)
 
