@@ -2,17 +2,15 @@ package main
 
 import (
 	"context"
-	"time"
-
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/jadolg/szero/pkg"
 
 	"github.com/charmbracelet/fang"
-	"github.com/charmbracelet/log"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
@@ -85,7 +83,8 @@ func init() {
 		return unusedNamespaces, cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 	err = rootCmd.RegisterFlagCompletionFunc("context", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		contexts, err := pkg.GetKubernetesContexts(kubeconfig)
@@ -95,38 +94,12 @@ func init() {
 		return contexts, cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
-func setupLogs() {
-	log.SetReportTimestamp(false)
-	styles := log.DefaultStyles()
-	styles.Levels[log.ErrorLevel] = lipgloss.NewStyle().
-		SetString("😿").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.InfoLevel] = lipgloss.NewStyle().
-		SetString("🐱").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("86")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.WarnLevel] = lipgloss.NewStyle().
-		SetString("😼").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("100")).
-		Foreground(lipgloss.Color("0"))
-	styles.Levels[log.FatalLevel] = lipgloss.NewStyle().
-		SetString("🙀").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("204")).
-		Foreground(lipgloss.Color("0"))
-	log.SetStyles(styles)
-}
-
 func main() {
-	setupLogs()
 	if err := fang.Execute(context.Background(), rootCmd, fang.WithoutVersion(), fang.WithoutManpage()); err != nil {
 		os.Exit(1)
 	}

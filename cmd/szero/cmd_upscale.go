@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 
-	"github.com/charmbracelet/log"
 	"github.com/jadolg/szero/pkg"
 	"github.com/spf13/cobra"
 )
@@ -18,61 +19,83 @@ var upCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if dryRun {
-			log.Warn("Running in dry-run mode, no changes will be made")
+			fmt.Fprintln(os.Stderr, "⚠️  Running in dry-run mode, no changes will be made")
 		}
 
 		clientset, err := pkg.GetClientset(kubeconfig, kubecontext)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
 		}
 
+		printer := pkg.NewTreePrinter()
 		ctx := context.Background()
 		for _, namespace := range namespaces {
-			log.Infof("Processing namespace %s", pkg.NS(namespace))
+			result := pkg.NamespaceResult{
+				Namespace: namespace,
+			}
+
+			// Deployments
 			if skipDeployments {
-				log.Infof("Skipping deployments in namespace %s", pkg.NS(namespace))
+				result.Deployments = pkg.ResourceGroup{Type: "Deployments", Skipped: true}
 			} else {
 				deployments, err := pkg.GetDeployments(ctx, clientset, namespace)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error getting deployments: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Found %s deployments in namespace %s", pkg.N(len(deployments.Items)), pkg.NS(namespace))
-				upscaledDeployments, err := pkg.UpscaleDeployments(ctx, clientset, deployments, dryRun)
+				deploymentInfos, err := pkg.UpscaleDeployments(ctx, clientset, deployments, dryRun)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error upscaling deployments: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Upscaled %s deployments", pkg.N(upscaledDeployments))
+				result.Deployments = pkg.ResourceGroup{
+					Type:      "Deployments",
+					Resources: deploymentInfos,
+				}
 			}
 
+			// StatefulSets
 			if skipStatefulsets {
-				log.Infof("Skipping statefulsets in namespace %s", pkg.NS(namespace))
+				result.StatefulSets = pkg.ResourceGroup{Type: "StatefulSets", Skipped: true}
 			} else {
 				statefulsets, err := pkg.GetStatefulSets(ctx, clientset, namespace)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error getting statefulsets: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Found %s statefulsets in namespace %s", pkg.N(len(statefulsets.Items)), pkg.NS(namespace))
-				upscaledStatefulsets, err := pkg.UpscaleStatefulSets(ctx, clientset, statefulsets, dryRun)
+				statefulsetInfos, err := pkg.UpscaleStatefulSets(ctx, clientset, statefulsets, dryRun)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error upscaling statefulsets: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Upscaled %s statefulsets", pkg.N(upscaledStatefulsets))
+				result.StatefulSets = pkg.ResourceGroup{
+					Type:      "StatefulSets",
+					Resources: statefulsetInfos,
+				}
 			}
 
+			// DaemonSets
 			if skipDaemonsets {
-				log.Infof("Skipping daemonsets in namespace %s", pkg.NS(namespace))
+				result.DaemonSets = pkg.ResourceGroup{Type: "DaemonSets", Skipped: true}
 			} else {
 				daemonsets, err := pkg.GetDaemonsets(ctx, clientset, namespace)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error getting daemonsets: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Found %s daemonsets in namespace %s", pkg.N(len(daemonsets.Items)), pkg.NS(namespace))
-				upscaledDaemonsets, err := pkg.UpscaleDaemonsets(ctx, clientset, daemonsets, dryRun)
+				daemonsetInfos, err := pkg.UpscaleDaemonsets(ctx, clientset, daemonsets, dryRun)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintf(os.Stderr, "Error upscaling daemonsets: %v\n", err)
+					os.Exit(1)
 				}
-				log.Infof("Upscaled %s daemonsets", pkg.N(upscaledDaemonsets))
+				result.DaemonSets = pkg.ResourceGroup{
+					Type:      "DaemonSets",
+					Resources: daemonsetInfos,
+				}
 			}
+
+			printer.PrintNamespaceResult(result)
 		}
 
 		if wait && !dryRun {

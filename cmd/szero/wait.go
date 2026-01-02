@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
-	"github.com/charmbracelet/log"
 	"github.com/jadolg/szero/pkg"
 	"k8s.io/client-go/kubernetes"
 )
@@ -14,7 +14,7 @@ func waitForResourcesOrFatal(ctx context.Context, clientset kubernetes.Interface
 	errors := make(chan error, 1)
 	done := make(chan bool, waitFor)
 
-	log.Infof("Waiting for all resources to reach the desired state in %s namespaces (timeout %v)", pkg.N(len(namespaces)), timeout)
+	fmt.Printf("⏳ Waiting for all resources to reach the desired state in %d namespaces (timeout %v)\n", len(namespaces), timeout)
 
 	for _, namespace := range namespaces {
 		if !skipDeployments {
@@ -46,7 +46,8 @@ func waitForResourcesOrFatal(ctx context.Context, clientset kubernetes.Interface
 		select {
 		case err := <-errors:
 			if err != nil {
-				log.Fatalf("Error waiting for resources to reach desired state: %v", err)
+				fmt.Fprintf(os.Stderr, "Error waiting for resources to reach desired state: %v\n", err)
+				os.Exit(1)
 			}
 		case <-done:
 			waitFor--

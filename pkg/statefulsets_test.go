@@ -104,9 +104,10 @@ func TestDownscaleStatefulSets(t *testing.T) {
 			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			downscaled, err := DownscaleStatefulSets(ctx, clientset, statefulsets, false)
+			downscaledInfos, err := DownscaleStatefulSets(ctx, clientset, statefulsets, false)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedDownscaled, downscaled)
+			scaledCount := countScaled(downscaledInfos)
+			assert.Equal(t, tc.expectedDownscaled, scaledCount)
 
 			newDeployments, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
@@ -172,9 +173,10 @@ func TestUpscaleStatefulSets(t *testing.T) {
 			statefulsets, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)
 
-			upscaled, err := UpscaleStatefulSets(ctx, clientset, statefulsets, false)
+			upscaledInfos, err := UpscaleStatefulSets(ctx, clientset, statefulsets, false)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedUpscaled, upscaled)
+			scaledCount := countScaled(upscaledInfos)
+			assert.Equal(t, tc.expectedUpscaled, scaledCount)
 
 			newDeployments, err := GetStatefulSets(ctx, clientset, "default")
 			assert.NoError(t, err)

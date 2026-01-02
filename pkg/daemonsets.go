@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charmbracelet/log"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -21,40 +20,46 @@ func GetDaemonsets(ctx context.Context, clientset kubernetes.Interface, namespac
 	return daemonsets, nil
 }
 
-func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daemonsets *v1.DaemonSetList, dryRun bool) (int, error) {
-	downscaledCount := 0
+func DownscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daemonsets *v1.DaemonSetList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
+	var results []ScaleInfo
 	for _, d := range daemonsets.Items {
 		downscaled, err := downscaleDaemonset(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling down resource %s: %w", d.GetName(), err), resultError)
 		}
-		if downscaled {
-			log.Infof("Scaling down daemonset %q", d.Name)
-			downscaledCount++
-		} else {
-			log.Warnf("Daemonset %q already downscaled", d.Name)
+		info := ScaleInfo{
+			Name:     d.Name,
+			Replicas: 0, // DaemonSets don't have replicas
+			Scaled:   downscaled,
 		}
+		if !downscaled {
+			info.Warning = "already downscaled"
+		}
+		results = append(results, info)
 	}
-	return downscaledCount, resultError
+	return results, resultError
 }
 
-func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daemonsets *v1.DaemonSetList, dryRun bool) (int, error) {
-	upscaledCount := 0
+func UpscaleDaemonsets(ctx context.Context, clientset kubernetes.Interface, daemonsets *v1.DaemonSetList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
+	var results []ScaleInfo
 	for _, d := range daemonsets.Items {
 		upscaled, err := upscaleDaemonset(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up resource %s: %w", d.GetName(), err), resultError)
 		}
-		if upscaled {
-			log.Infof("Scaling up daemonset %q", d.Name)
-			upscaledCount++
-		} else {
-			log.Warnf("Daemonset %q is already scaled up", d.Name)
+		info := ScaleInfo{
+			Name:     d.Name,
+			Replicas: 0, // DaemonSets don't have replicas
+			Scaled:   upscaled,
 		}
+		if !upscaled {
+			info.Warning = "already scaled up"
+		}
+		results = append(results, info)
 	}
-	return upscaledCount, resultError
+	return results, resultError
 }
 
 func downscaleDaemonset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, error) {

@@ -7,47 +7,52 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/charmbracelet/log"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 )
 
-func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) (int, error) {
+func UpscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
-	upscaledCount := 0
+	var results []ScaleInfo
 	for _, d := range deployments.Items {
 		upscaled, replicas, err := upscaleDeployment(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up deployment %s: %w", d.Name, err), resultError)
 		}
-		if upscaled {
-			log.Infof("Scaling up deployment %q to %s replicas", d.Name, N(replicas))
-			upscaledCount++
-		} else {
-			log.Warnf("Deployment %q already scaled up", d.Name)
+		info := ScaleInfo{
+			Name:     d.Name,
+			Replicas: replicas,
+			Scaled:   upscaled,
 		}
+		if !upscaled {
+			info.Warning = "already scaled up"
+		}
+		results = append(results, info)
 	}
-	return upscaledCount, resultError
+	return results, resultError
 }
 
-func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) (int, error) {
+func DownscaleDeployments(ctx context.Context, clientset kubernetes.Interface, deployments *v1.DeploymentList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
-	downscaledCount := 0
+	var results []ScaleInfo
 	for _, d := range deployments.Items {
 		downscaled, originalReplicas, err := downscaleDeployment(ctx, clientset, d.Namespace, d.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling down deployment %s: %w", d.Name, err), resultError)
 		}
-		if downscaled {
-			log.Infof("Scaling down deployment %q from %s replicas", d.Name, N(originalReplicas))
-			downscaledCount++
-		} else {
-			log.Warnf("Deployment %q already downscaled", d.Name)
+		info := ScaleInfo{
+			Name:     d.Name,
+			Replicas: originalReplicas,
+			Scaled:   downscaled,
 		}
+		if !downscaled {
+			info.Warning = "already downscaled"
+		}
+		results = append(results, info)
 	}
-	return downscaledCount, resultError
+	return results, resultError
 }
 
 func GetDeployments(ctx context.Context, clientset kubernetes.Interface, namespace string) (*v1.DeploymentList, error) {

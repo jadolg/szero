@@ -7,47 +7,52 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/charmbracelet/log"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 )
 
-func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) (int, error) {
+func UpscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
-	upscaledCount := 0
+	var results []ScaleInfo
 	for _, s := range statefulsets.Items {
 		upscaled, replicas, err := upscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling up statefulset %s: %w", s.Name, err), resultError)
 		}
-		if upscaled {
-			log.Infof("Scaling up statefulset %q to %s replicas", s.Name, N(replicas))
-			upscaledCount++
-		} else {
-			log.Warnf("Statefulset %q already scaled up", s.Name)
+		info := ScaleInfo{
+			Name:     s.Name,
+			Replicas: replicas,
+			Scaled:   upscaled,
 		}
+		if !upscaled {
+			info.Warning = "already scaled up"
+		}
+		results = append(results, info)
 	}
-	return upscaledCount, resultError
+	return results, resultError
 }
 
-func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) (int, error) {
+func DownscaleStatefulSets(ctx context.Context, clientset kubernetes.Interface, statefulsets *v1.StatefulSetList, dryRun bool) ([]ScaleInfo, error) {
 	var resultError error
-	downscaledCount := 0
+	var results []ScaleInfo
 	for _, s := range statefulsets.Items {
 		downscaled, originalReplicas, err := downscaleStatefulset(ctx, clientset, s.Namespace, s.Name, dryRun)
 		if err != nil {
 			resultError = errors.Join(fmt.Errorf("error scaling down statefulset %s: %w", s.Name, err), resultError)
 		}
-		if downscaled {
-			log.Infof("Scaling down statefulset %q from %s replicas", s.Name, N(originalReplicas))
-			downscaledCount++
-		} else {
-			log.Warnf("Statefulset %q already downscaled", s.Name)
+		info := ScaleInfo{
+			Name:     s.Name,
+			Replicas: originalReplicas,
+			Scaled:   downscaled,
 		}
+		if !downscaled {
+			info.Warning = "already downscaled"
+		}
+		results = append(results, info)
 	}
-	return downscaledCount, resultError
+	return results, resultError
 }
 
 func upscaleStatefulset(ctx context.Context, clientset kubernetes.Interface, namespace string, name string, dryRun bool) (bool, int32, error) {
