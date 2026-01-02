@@ -56,20 +56,25 @@ func NewTreePrinterWithWriter(w io.Writer) *TreePrinter {
 }
 
 // PrintNamespaceResult prints the scaling result for a namespace in tree format
-func (tp *TreePrinter) PrintNamespaceResult(result NamespaceResult) {
+func (tp *TreePrinter) PrintNamespaceResult(result NamespaceResult) error {
 	// Print namespace header
-	fmt.Fprintf(tp.writer, "%s\n", namespaceStyle.Render(result.Namespace))
+	if _, err := fmt.Fprintf(tp.writer, "%s\n", namespaceStyle.Render(result.Namespace)); err != nil {
+		return err
+	}
 
 	groups := []ResourceGroup{result.Deployments, result.StatefulSets, result.DaemonSets}
 
 	for i, group := range groups {
 		isLast := i == len(groups)-1
-		tp.printResourceGroup(group, isLast)
+		if err := tp.printResourceGroup(group, isLast); err != nil {
+			return err
+		}
 	}
-	fmt.Fprintln(tp.writer)
+	_, err := fmt.Fprintln(tp.writer)
+	return err
 }
 
-func (tp *TreePrinter) printResourceGroup(group ResourceGroup, isLast bool) {
+func (tp *TreePrinter) printResourceGroup(group ResourceGroup, isLast bool) error {
 	connector := "├── "
 	childPrefix := "│   "
 	if isLast {
@@ -78,8 +83,8 @@ func (tp *TreePrinter) printResourceGroup(group ResourceGroup, isLast bool) {
 	}
 
 	if group.Skipped {
-		fmt.Fprintf(tp.writer, "%s%s\n", connector, skipStyle.Render(fmt.Sprintf("%s (skipped)", group.Type)))
-		return
+		_, err := fmt.Fprintf(tp.writer, "%s%s\n", connector, skipStyle.Render(fmt.Sprintf("%s (skipped)", group.Type)))
+		return err
 	}
 
 	// Print resource type header with count
@@ -90,7 +95,9 @@ func (tp *TreePrinter) printResourceGroup(group ResourceGroup, isLast bool) {
 		}
 	}
 	header := fmt.Sprintf("%s (%d/%d)", group.Type, scaledCount, len(group.Resources))
-	fmt.Fprintf(tp.writer, "%s%s\n", connector, resourceStyle.Render(header))
+	if _, err := fmt.Fprintf(tp.writer, "%s%s\n", connector, resourceStyle.Render(header)); err != nil {
+		return err
+	}
 
 	// Print each resource
 	for j, res := range group.Resources {
@@ -107,10 +114,15 @@ func (tp *TreePrinter) printResourceGroup(group ResourceGroup, isLast bool) {
 			} else {
 				info = res.Name
 			}
-			fmt.Fprintf(tp.writer, "%s%s%s\n", childPrefix, itemConnector, itemStyle.Render(info))
+			if _, err := fmt.Fprintf(tp.writer, "%s%s%s\n", childPrefix, itemConnector, itemStyle.Render(info)); err != nil {
+				return err
+			}
 		} else {
 			info := fmt.Sprintf("%s %s", res.Name, warnStyle.Render(fmt.Sprintf("(%s)", res.Warning)))
-			fmt.Fprintf(tp.writer, "%s%s%s\n", childPrefix, itemConnector, itemStyle.Render(info))
+			if _, err := fmt.Fprintf(tp.writer, "%s%s%s\n", childPrefix, itemConnector, itemStyle.Render(info)); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

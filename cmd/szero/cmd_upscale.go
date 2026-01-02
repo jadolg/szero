@@ -95,7 +95,10 @@ var upCmd = &cobra.Command{
 				}
 			}
 
-			printer.PrintNamespaceResult(result)
+			if err := printer.PrintNamespaceResult(result); err != nil {
+				fmt.Fprintf(os.Stderr, "Error printing results: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		if wait && !dryRun {
