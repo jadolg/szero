@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -97,6 +99,12 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Set klog to only show WARNING and ERROR (suppress INFO)
+	klog.InitFlags(nil)
+	klog.LogToStderr(false)
+	klog.SetOutput(io.Discard) // Discard INFO logs
+	klog.SetOutputBySeverity("WARNING", os.Stderr)
 }
 
 func main() {
