@@ -22,7 +22,7 @@ jobs:
         id: goversion
         run: echo "GOVERSION=$(go version | awk '{print $3}')" >> $GITHUB_ENV
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: latest
