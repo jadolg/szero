@@ -1,6 +1,6 @@
 module github.com/jadolg/szero
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/charmbracelet/fang v0.4.3
